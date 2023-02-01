@@ -1,0 +1,11 @@
+resources/
+tesseract-OCR/
+platform-tools_r33.0.3-windows/
+env/
+__pycache__/
+docs/
+adb.exe
+screen.png
+tesseract-ocr-w64-setup
+aa.jpg
+README.md
