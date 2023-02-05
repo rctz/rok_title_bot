@@ -46,7 +46,7 @@ class PlayerData():
         other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
         current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
         return current_key == other_key
-        
+
     @property
     def pos_img(self):
         return self._pos_img
@@ -169,3 +169,8 @@ class Adb():
         self.device.input_tap(60, 25)
         print("Bot said: "+message)
         sleep(1)
+
+    def clickToTarget(self, coord_data, sleep_time=1):
+        sleep(0.1)
+        self.device.input_tap(coord_data.x, coord_data.y)
+        sleep(sleep_time)
