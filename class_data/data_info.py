@@ -40,8 +40,7 @@ class TitleInfo(Enum):
 
 class PlayerData():
     def __init__(self):
-        self.checked = False
-
+        pass
     def __eq__(self, other):
         other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
         current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
@@ -53,8 +52,6 @@ class PlayerData():
 
     @pos_img.setter
     def pos_img(self, value):
-        # Check flag found share location
-        self.checked = True
         self._pos_img = value
 
     @property
@@ -129,6 +126,16 @@ class PlayerData():
         avatar_pos = const.CoordData(self._left_coord_pos, self._top_coord_pos)
         
         return avatar_pos
+
+    def is_valid(self):
+        try:
+            if self.kingdom_cord and self.x_cord and self.y_cord:
+                return True
+            else:
+                return False
+        # missing some property
+        except:
+            return False
 
 class Adb():
     def __init__(self) -> None:
