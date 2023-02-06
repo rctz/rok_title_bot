@@ -9,7 +9,6 @@ import numpy as np
 import cv2 as cv
 from pytesseract import pytesseract, Output
 
-pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 def convert_image_cv(image):
     cv_image = np.array(image) 
@@ -18,14 +17,12 @@ def convert_image_cv(image):
     return cv_image
 
 
-def get_data_image(img, output_type=Output.STRING):
-    data = pytesseract.image_to_data(img, lang='eng', config='', output_type=output_type)
+def get_data_image(img, config="", output_type=Output.STRING):
+    data = pytesseract.image_to_data(img, lang='eng', config=config, output_type=output_type)
     
     return data
 
 
-
-    
 class TitleInfo(Enum):
     DUKE = const.COORD_DUKE
     ARCH = 2
@@ -38,6 +35,14 @@ class TitleInfo(Enum):
     SLUG = 9 
     FOLL = 10
 
+class OptionImage(Enum):
+    LOCATION = 1
+    CHAT = 2
+
+class BotLocation(Enum):
+    KINGDOM = 1
+    KVK = 2
+
 class PlayerData():
     def __init__(self):
         pass
@@ -45,6 +50,10 @@ class PlayerData():
         other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
         current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
         return current_key == other_key
+    
+    def __str__(self):
+        return "Kingdom: {}, cord_x: {}, cord_y: {}".format(self.kingdom_cord, \
+                self.x_cord, self.y_cord)
 
     @property
     def pos_img(self):
@@ -159,13 +168,23 @@ class Adb():
         self.screen_image = self.device.screencap()
         sleep(1)
 
-    def get_text_image(self):
+    def get_text_image(self, opt=OptionImage.CHAT):
         self.take_screenshot()
 
         img = Image.open(io.BytesIO(self.screen_image))
-        chat_image = img.crop(const.COORD_MESSAGE_LIST)
-        image_cv = convert_image_cv(chat_image)
-        image_data = get_data_image(image_cv, Output.DICT)
+        if opt == OptionImage.CHAT:
+            tesseract_config = ""
+            coord_crop = const.COORD_MESSAGE_LIST
+        elif opt == OptionImage.LOCATION:
+            tesseract_config = r'--psm 13 tessedit_char_whitelist=ABCDEFG0123456789'
+            coord_crop = const.COORD_LOCATION_LIST
+        # Not support other flag
+        else:
+            pass
+
+        crop_image = img.crop(coord_crop)
+        image_cv = convert_image_cv(crop_image)
+        image_data = get_data_image(image_cv, tesseract_config, Output.DICT)
 
         return image_data
 
@@ -176,6 +195,10 @@ class Adb():
         self.device.input_tap(60, 25)
         print("Bot said: "+message)
         sleep(1)
+
+    def chat_scoll_down(self):
+        self.device.input_swipe(const.COORD_CHAT_SWIPE_BEGIN.x, const.COORD_CHAT_SWIPE_BEGIN.y, \
+                                const.COORD_CHAT_SWIPE_END.x, const.COORD_CHAT_SWIPE_END.y, 500)
 
     def clickToTarget(self, coord_data, sleep_time=1):
         sleep(0.1)

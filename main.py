@@ -1,7 +1,8 @@
 import threading
 import re
-from class_data.data_info import Adb, PlayerData, TitleInfo
-from time import sleep
+from class_data.data_info import Adb, PlayerData, TitleInfo, OptionImage, BotLocation
+from time import sleep, time
+import schedule
 import cv2 as cv
 from queue import Queue
 from pytesseract import pytesseract, Output
@@ -9,12 +10,17 @@ import const
 
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
+
+
 class TitleGiver():
-    def __init__(self):
+    def __init__(self, time_period=1):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
         self.title_queue = Queue()
+        # Convert min -> sec
+        self.title_period = time_period * 60
+        self.title_time_counter = 0
 
 
     def manage_queue(self):
@@ -32,39 +38,58 @@ class TitleGiver():
                 for item in dup_input:
                     self.title_queue.put(item)
 
-        self.previous_player_list = self.actual_player
+        # if actual player is not empty list
+        if self.actual_player:
+            self.previous_player_list = self.actual_player
         self.manage_queue_flg = False
 
 
-    def action_title(self):
-        print(self.title_queue.queue)
+    def action_title(self, ):
         if not self.title_queue.empty():
             while self.manage_queue_flg:
                 print("Waiting manage queue")
                 sleep(2)
 
-            self.action_title_flg = True
-            print("Title action process")
+            time_now = time()
+            if time_now - self.title_time_counter >= self.title_period:
+                self.title_time_counter = time_now
+                self.action_title_flg = True
+                print("Title action process")
 
-            # Get player from queue
-            player_info = self.title_queue.get()
-            print(player_info)
-            # If player is in kingdom map, can use magnify dude no forge
-            if player_info.is_kingdom_map():
-                search_with_magnifying(player_info)
+                # Get player from queue
+                player_info = self.title_queue.get()
+
+                print("Current process: ", player_info)
+    
+                # If player is in kingdom map, can use magnify dude no forge
+                if player_info.is_kingdom_map():
+                    print("HERER?")
+                    search_with_magnifying(player_info)
+                else:
+                    # Close chat box for search kingdom location
+                    adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
+                    if current_bot_location() == BotLocation.KVK:
+                        search_with_magnifying(player_info)
+                    else:
+                        # Need to open chat to click location link
+                        adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                        search_with_shared_coord(player_info)
+
+                sleep(3)
+                give_title(TitleInfo.DUKE)
+                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                # Scoll down to lasted message in chat room
+                adb_cls.chat_scoll_down()
+                sleep(1)
+
+                self.action_title_flg = False
             else:
-                search_with_shared_coord(player_info)
-
-            sleep(3)
-            give_title(TitleInfo.DUKE)
-            adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
-
-            self.action_title_flg = False
+                print("Wait duke finish")
 
 
 def get_player_list():
     player_list = []
-    image_data = adb_cls.get_text_image()
+    image_data = adb_cls.get_text_image(OptionImage.CHAT)
     #print(image_data["text"])
     for idx, value in enumerate(image_data["text"]):
         if "Shared" in value:
@@ -80,17 +105,9 @@ def get_player_list():
                 else:
                     player_list.append(player_data)
             else:
-                print("Not found user request duke!")
+                print("User is not valid")
 
     return player_list
-
-
-
-
-def clickToTarget(coord_data, sleep_time=1):
-    sleep(0.1)
-    adb_cls.input_tap(coord_data.x, coord_data.y)
-    sleep(sleep_time)
 
 
 def get_coord_info(data_left, data_top, data_text):
@@ -154,9 +171,9 @@ def search_with_magnifying(player_info):
 
     # Backspace 10 time
     for _ in range(10):
-        adb_cls.input_keyevent(67)
+        adb_cls.device.input_keyevent(67)
     sleep(0.2)
-    adb_cls.input_text(player_info.kingdom_cord)
+    adb_cls.device.input_text(player_info.kingdom_cord)
     sleep(0.5)
 
     # Click label ok
@@ -164,14 +181,14 @@ def search_with_magnifying(player_info):
 
     # Click x input textbox
     adb_cls.clickToTarget(const.COORD_X_INPUT, sleep_time=0.5)
-    adb_cls.input_text(player_info.x_cord)
+    adb_cls.device.input_text(player_info.x_cord)
 
     # Click label ok
     adb_cls.clickToTarget(const.COORD_LABEL_OK, sleep_time=0.1)
 
     # Click y input textbox
     adb_cls.clickToTarget(const.COORD_Y_INPUT, sleep_time=0.5)
-    adb_cls.input_text(player_info.y_cord)
+    adb_cls.device.input_text(player_info.y_cord)
 
     # Click label ok
     adb_cls.clickToTarget(const.COORD_LABEL_OK, sleep_time=0.1)
@@ -194,35 +211,7 @@ def give_title(target_title):
     adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
     
 
-def actionTitle(player_info):
-    print("Title action process")
-    
-    # print(player_info.kingdom_cord)
-    # print(player_info.x_cord)
-    # print(player_info.y_cord)
-
-    # If player is in kingdom map, can use magnify dude no forge
-    if player_info.is_kingdom_map():
-        search_with_magnifying(player_info)
-    else:
-        search_with_shared_coord(player_info)
-        
-
-    sleep(3)
-    give_title(TitleInfo.DUKE)
-    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
-
-    # device.input_swipe(player_info.left_avatar_pos, player_info.top_avatar_pos, \
-    #                    player_info.left_avatar_pos, player_info.top_avatar_pos, 3500) #Metion user
-    sleep(1)
-    #adb_cls.game_chat(" On you")
-
-    #detectDone()
-    #scrollTopToFindCoord(False)
-
-
 def find_first_dup(previous, actual):
-    
     if previous:
         previous_last = previous[-1]
         try:
@@ -236,23 +225,38 @@ def find_first_dup(previous, actual):
         return actual
 
 
+def run_thread_queue():
+    queue_thread = threading.Thread(target=title_giver.manage_queue(), daemon=True)
+    queue_thread.start()
+    queue_thread.join()
+    print("Queue: ", title_giver.title_queue.queue)
+
+
+def run_thread_title():
+    title_thread = threading.Thread(target=title_giver.action_title(), daemon=True)
+    title_thread.start()
+    title_thread.join()
+
 
 def main():
-    title_queue = []
-    done_queue = []
     while True:
-        queue_thread = threading.Thread(target=title_giver.manage_queue(), daemon=True)
-        title_thread = threading.Thread(target=title_giver.action_title(), daemon=True)
-        queue_thread.start()
-        title_thread.start()
-        queue_thread.join()
-        title_thread.join()
-        #print(title_giver.title_queue)
+        run_thread_queue()
+        schedule.run_pending()
         print("===============")
 
 
+def current_bot_location():
+    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
+    bot_location = BotLocation.KINGDOM
+    for _, value in enumerate(image_data["text"]):
+        if "#C" in value:
+            bot_location = BotLocation.KVK
+            break
+
+    return bot_location
 
 if __name__ == "__main__":
+    schedule.every(3).seconds.do(run_thread_title)
     adb_cls = Adb()
     title_giver = TitleGiver()
     if adb_cls.device_status:
