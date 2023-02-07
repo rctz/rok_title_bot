@@ -5,6 +5,8 @@ class CoordData():
         self.y = y
 
 TESSERACT_PATH = r"I:\ta\python\Rok-BotgiverTitle\tesseract-OCR\tesseract.exe"
+TITLE_ICON_PATH = "img/title_icon.jpg"
+
 ADB_HOST = "127.0.0.1"
 ADB_PORT = 5037
 

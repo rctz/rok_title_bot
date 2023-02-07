@@ -43,6 +43,10 @@ class BotLocation(Enum):
     KINGDOM = 1
     KVK = 2
 
+class SearchOption(Enum):
+    MAGNIFY = 1
+    SHARED_COORD = 2
+
 class PlayerData():
     def __init__(self):
         pass
@@ -52,7 +56,7 @@ class PlayerData():
         return current_key == other_key
     
     def __str__(self):
-        return "Kingdom: {}, cord_x: {}, cord_y: {}".format(self.kingdom_cord, \
+        return "Kingdom: {}, cord_x: {}, cord_y: {}".format(self.kingdom_cord[-4:], \
                 self.x_cord, self.y_cord)
 
     @property
@@ -127,6 +131,7 @@ class PlayerData():
         k_map_flg = True
         kingdom_cord_len = len(self.kingdom_cord)
         if kingdom_cord_len > 4:
+            self.kingdom_cord = "C" + self.kingdom_cord
             k_map_flg = False
 
         return k_map_flg
@@ -165,13 +170,15 @@ class Adb():
             self.device = devices[0]
 
     def take_screenshot(self):
-        self.screen_image = self.device.screencap()
+        image = self.device.screencap()
         sleep(1)
 
-    def get_text_image(self, opt=OptionImage.CHAT):
-        self.take_screenshot()
+        return image
 
-        img = Image.open(io.BytesIO(self.screen_image))
+    def get_text_image(self, opt=OptionImage.CHAT):
+        image = self.take_screenshot()
+
+        img = Image.open(io.BytesIO(image))
         if opt == OptionImage.CHAT:
             tesseract_config = ""
             coord_crop = const.COORD_MESSAGE_LIST
@@ -201,6 +208,6 @@ class Adb():
                                 const.COORD_CHAT_SWIPE_END.x, const.COORD_CHAT_SWIPE_END.y, 500)
 
     def clickToTarget(self, coord_data, sleep_time=1):
-        sleep(0.1)
+        sleep(0.3)
         self.device.input_tap(coord_data.x, coord_data.y)
         sleep(sleep_time)

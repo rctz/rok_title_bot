@@ -1,15 +1,15 @@
 import threading
 import re
-from class_data.data_info import Adb, PlayerData, TitleInfo, OptionImage, BotLocation
+import cv2
+from class_data.data_info import Adb, PlayerData, TitleInfo, OptionImage, BotLocation, SearchOption
 from time import sleep, time
+import numpy as np
 import schedule
-import cv2 as cv
 from queue import Queue
-from pytesseract import pytesseract, Output
+from pytesseract import pytesseract
 import const
 
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
-
 
 
 class TitleGiver():
@@ -52,6 +52,7 @@ class TitleGiver():
 
             time_now = time()
             if time_now - self.title_time_counter >= self.title_period:
+                search_option = SearchOption.SHARED_COORD
                 self.title_time_counter = time_now
                 self.action_title_flg = True
                 print("Title action process")
@@ -63,20 +64,23 @@ class TitleGiver():
     
                 # If player is in kingdom map, can use magnify dude no forge
                 if player_info.is_kingdom_map():
-                    print("HERER?")
                     search_with_magnifying(player_info)
+                    search_option = SearchOption.MAGNIFY
                 else:
                     # Close chat box for search kingdom location
                     adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
+
                     if current_bot_location() == BotLocation.KVK:
                         search_with_magnifying(player_info)
+                        search_option = SearchOption.MAGNIFY
                     else:
                         # Need to open chat to click location link
                         adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                         search_with_shared_coord(player_info)
+                        search_option = SearchOption.SHARED_COORD
 
                 sleep(3)
-                give_title(TitleInfo.DUKE)
+                give_title(TitleInfo.DUKE, search_option)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                 # Scoll down to lasted message in chat room
                 adb_cls.chat_scoll_down()
@@ -87,10 +91,28 @@ class TitleGiver():
                 print("Wait duke finish")
 
 
+def find_cv_title_icon():
+    # Add print screen
+    screen_img = adb_cls.take_screenshot()
+    nparr = np.frombuffer(screen_img, np.uint8)
+
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    icon = cv2.imread(const.TITLE_ICON_PATH)
+
+    result = cv2.matchTemplate(img, icon, cv2.TM_CCOEFF_NORMED)
+
+    _, _, _, max_loc = cv2.minMaxLoc(result)
+
+    top_left = max_loc
+    bottom_right = (top_left[0] + icon.shape[1], top_left[1] + icon.shape[0])
+
+    middle_lo = const.CoordData((top_left[0] + bottom_right[0])/2, (top_left[1] + bottom_right[1])/2)
+
+    return middle_lo
+
 def get_player_list():
     player_list = []
     image_data = adb_cls.get_text_image(OptionImage.CHAT)
-    #print(image_data["text"])
     for idx, value in enumerate(image_data["text"]):
         if "Shared" in value:
             image_data_left = image_data["left"][idx:]
@@ -201,10 +223,16 @@ def search_with_shared_coord(player_info):
     adb_cls.clickToTarget(player_info.get_position_coord_pos(), sleep_time=5)
 
 
-def give_title(target_title):
+def give_title(target_title, search_opt):
     # Click mid screen
     adb_cls.clickToTarget(const.CORRD_MID_SCREEN, sleep_time=1.5)
-    adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
+    if search_opt == SearchOption.SHARED_COORD:
+        adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
+    else:
+        title_page = find_cv_title_icon()
+        adb_cls.clickToTarget(title_page)
+        print(title_page.x, title_page.y)
+    
     adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
 
     # Click confirm title
@@ -252,6 +280,8 @@ def current_bot_location():
         if "#C" in value:
             bot_location = BotLocation.KVK
             break
+
+    print("Bot screen location: ", bot_location)
 
     return bot_location
 
