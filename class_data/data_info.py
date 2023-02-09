@@ -50,9 +50,10 @@ class SearchOption(Enum):
 class PlayerData():
     def __init__(self):
         pass
+
     def __eq__(self, other):
-        other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
-        current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
+        other_key = "{}{}{}".format(other.kingdom_cord[-4:], other.x_cord, other.y_cord)
+        current_key = "{}{}{}".format(self.kingdom_cord[-4:], self.x_cord, self.y_cord)
         return current_key == other_key
     
     def __str__(self):

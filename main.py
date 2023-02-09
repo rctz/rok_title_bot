@@ -13,7 +13,7 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 
 class TitleGiver():
-    def __init__(self, time_period=1):
+    def __init__(self, time_period=3):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
@@ -183,7 +183,7 @@ def get_coord_info(data_left, data_top, data_text):
 def search_with_magnifying(player_info):
     # Close chat
     adb_cls.clickToTarget(const.COORD_CLOSE_CHAT)
-    print("Close chat")
+    print("Closing chat")
 
     # Click mafi icon
     adb_cls.clickToTarget(const.COORD_SEARCH)
