@@ -13,7 +13,7 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 
 class TitleGiver():
-    def __init__(self, time_period=3):
+    def __init__(self, time_period=2.5):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
@@ -21,6 +21,7 @@ class TitleGiver():
         # Convert min -> sec
         self.title_period = time_period * 60
         self.title_time_counter = 0
+        self.count_empty_queue = 0
 
 
     def manage_queue(self):
@@ -29,10 +30,11 @@ class TitleGiver():
             sleep(4)
 
         self.manage_queue_flg = True
-        self.actual_player = get_player_list()
+        self.actual_player, image_data = get_player_list()
         if self.actual_player == self.previous_player_list:
             pass
         else:
+            self.count_empty_queue = 0
             dup_input = find_first_dup(self.previous_player_list, self.actual_player)
             if dup_input:
                 for item in dup_input:
@@ -41,10 +43,22 @@ class TitleGiver():
         # if actual player is not empty list
         if self.actual_player:
             self.previous_player_list = self.actual_player
+
+        if self.title_queue.qsize() == 0:
+            self.count_empty_queue += 1
+
+        if self.count_empty_queue >= 5:
+            if is_connection_lost(image_data["text"]):
+                adb_cls.clickToTarget(const.COORD_CONFIRM_NETWORK_LOST, sleep_time=5)
+                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+            else:
+                adb_cls.chat_scoll_down()
+                self.count_empty_queue = 0
+
         self.manage_queue_flg = False
 
 
-    def action_title(self, ):
+    def action_title(self):
         if not self.title_queue.empty():
             while self.manage_queue_flg:
                 print("Waiting manage queue")
@@ -79,7 +93,7 @@ class TitleGiver():
                         search_with_shared_coord(player_info)
                         search_option = SearchOption.SHARED_COORD
 
-                sleep(3)
+                sleep(1)
                 give_title(TitleInfo.DUKE, search_option)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                 # Scoll down to lasted message in chat room
@@ -89,6 +103,22 @@ class TitleGiver():
                 self.action_title_flg = False
             else:
                 print("Wait duke finish")
+
+
+def is_connection_lost(image_data):
+    for idx, data in enumerate(image_data):
+        # Network unstable cas
+        if data == "Network" :
+            if image_data[idx+1] == "unstable,":
+                return True
+        # Login fail case
+        elif data == "Login":
+            if image_data[idx+1] == "failed,":
+                return True
+        else:
+            pass
+
+    return False
 
 
 def find_cv_title_icon():
@@ -129,7 +159,7 @@ def get_player_list():
             else:
                 print("User is not valid")
 
-    return player_list
+    return player_list, image_data
 
 
 def get_coord_info(data_left, data_top, data_text):
@@ -139,43 +169,53 @@ def get_coord_info(data_left, data_top, data_text):
         for i in range(len(data_text)):
             if data_text[i] == "Shared":
                 if data_text[i+1] == "a" or data_text[i+2] == "coordinate." or data_text[i+2] == "coordinate":
+                    found_x_flg = False
+                    found_y_flg = False
                     player_info.left_image = data_left[i]
                     player_info.top_image = data_top[i]
                     player_info.pos_img = i
 
-                    res = [False, False]
                     for j in range(i+1, len(data_text)):
-                        if data_text[j] != '':
-                            if "(#" in data_text[j]:
-                                str_num_kd = len(data_text[j])
-                                # Get Kingdom format (#2254
-                                if str_num_kd == 6:
-                                    player_info.kingdom_cord = data_text[j][2:]
-                                else:
-                                    player_info.kingdom_cord = data_text[j][3:]
+                        if "(#" in data_text[j]:
+                            str_num_kd = len(data_text[j])
+                            # Get Kingdom format (#2254
+                            if str_num_kd == 6:
+                                player_info.kingdom_cord = data_text[j][2:]
+                            else:
+                                player_info.kingdom_cord = data_text[j][3:]
 
-                            elif data_text[j][0] == "X":
-                                player_info.x_cord = int(re.findall(r'\d+', data_text[j])[0])
-                                res[0] = True
+                        # Error from orc
+                        elif data_text[j][0] == "X" or data_text[j][0] == "x":
+                            x_cord_list = re.findall(r'\d+', data_text[j])
+                            if x_cord_list:
+                                player_info.x_cord = int(x_cord_list[0])
+                            else:
+                                x_cord_list = re.findall(r'\d+', data_text[j+1])
+                            player_info.x_cord = int(x_cord_list[0])
+                            found_x_flg = True
 
-                            elif data_text[j][0] == "Y":
-                                y_cord = re.findall(r'\d+', data_text[j])
-                                if y_cord:
-                                    y_cord = int(y_cord[0])
-                                else:
-                                    y_cord = int(re.findall(r'\d+', data_text[j+1])[0])
+                        # Error from orc
+                        elif data_text[j][0] == "Y" or data_text[j][0] == "y":
+                            y_cord = re.findall(r'\d+', data_text[j])
+                            if y_cord:
+                                y_cord = int(y_cord[0])
+                            else:
+                                y_cord = int(re.findall(r'\d+', data_text[j+1])[0])
 
-                                player_info.y_cord = y_cord
-                                res[1] = True
+                            player_info.y_cord = y_cord
+                            found_y_flg = True
+                        
+                        else:
+                            pass
 
-                            if res[0] is True and res[1] is True:
-                                break
+                        if found_x_flg and found_y_flg is True:
+                            break
                     break
             else:
                 continue
 
     except Exception as e:
-        print(str(e))
+       print(str(e))
 
     return player_info
 
@@ -225,7 +265,7 @@ def search_with_shared_coord(player_info):
 
 def give_title(target_title, search_opt):
     # Click mid screen
-    adb_cls.clickToTarget(const.CORRD_MID_SCREEN, sleep_time=1.5)
+    adb_cls.clickToTarget(const.CORRD_MID_SCREEN, sleep_time=0.5)
     if search_opt == SearchOption.SHARED_COORD:
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
     else:
@@ -274,13 +314,15 @@ def main():
 
 
 def current_bot_location():
-    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
     bot_location = BotLocation.KINGDOM
+    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
+    
     for _, value in enumerate(image_data["text"]):
-        if "#C" in value:
+        #TODO Check again maybe can remove #C
+        if "#C" in value or "C" in value:
             bot_location = BotLocation.KVK
             break
-
+    
     print("Bot screen location: ", bot_location)
 
     return bot_location
