@@ -52,12 +52,12 @@ class PlayerData():
         pass
 
     def __eq__(self, other):
-        other_key = "{}{}{}".format(other.kingdom_cord[-4:], other.x_cord, other.y_cord)
-        current_key = "{}{}{}".format(self.kingdom_cord[-4:], self.x_cord, self.y_cord)
+        other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
+        current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
         return current_key == other_key
     
     def __str__(self):
-        return "Kingdom: {}, cord_x: {}, cord_y: {}".format(self.kingdom_cord[-4:], \
+        return "Kingdom: {}, cord_x: {}, cord_y: {}".format(self.kingdom_cord, \
                 self.x_cord, self.y_cord)
 
     @property
@@ -74,6 +74,8 @@ class PlayerData():
 
     @kingdom_cord.setter
     def kingdom_cord(self, value):
+        if isinstance(value, int):
+            value = str(value)
         self._kingdom_cord = value
 
     @property
@@ -184,7 +186,7 @@ class Adb():
             tesseract_config = ""
             coord_crop = const.COORD_MESSAGE_LIST
         elif opt == OptionImage.LOCATION:
-            tesseract_config = r'--psm 13 tessedit_char_whitelist=ABCDEFG0123456789'
+            tesseract_config = r'--psm 13 tessedit_char_whitelist=C0123456789'
             coord_crop = const.COORD_LOCATION_LIST
         # Not support other flag
         else:
@@ -195,6 +197,23 @@ class Adb():
         image_data = get_data_image(image_cv, tesseract_config, Output.DICT)
 
         return image_data
+
+    def find_cv_title_icon(self):
+        image = self.take_screenshot()
+        nparr = np.frombuffer(image, np.uint8)
+        img = cv.imdecode(nparr, cv.IMREAD_COLOR)
+        icon = cv.imread(const.TITLE_ICON_PATH)
+
+        result = cv.matchTemplate(img, icon, cv.TM_CCOEFF_NORMED)
+
+        _, _, _, max_loc = cv.minMaxLoc(result)
+
+        top_left = max_loc
+        bottom_right = (top_left[0] + icon.shape[1], top_left[1] + icon.shape[0])
+
+        middle_lo = const.CoordData((top_left[0] + bottom_right[0])/2, (top_left[1] + bottom_right[1])/2)
+
+        return middle_lo
 
     def game_chat(self, message):
         self.device.input_tap(const.COORD_CHAT_BAR.x, const.COORD_CHAT_BAR.y)

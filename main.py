@@ -93,7 +93,7 @@ class TitleGiver():
                         search_with_shared_coord(player_info)
                         search_option = SearchOption.SHARED_COORD
 
-                sleep(1)
+                sleep(2.5)
                 give_title(TitleInfo.DUKE, search_option)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                 # Scoll down to lasted message in chat room
@@ -121,25 +121,6 @@ def is_connection_lost(image_data):
     return False
 
 
-def find_cv_title_icon():
-    # Add print screen
-    screen_img = adb_cls.take_screenshot()
-    nparr = np.frombuffer(screen_img, np.uint8)
-
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    icon = cv2.imread(const.TITLE_ICON_PATH)
-
-    result = cv2.matchTemplate(img, icon, cv2.TM_CCOEFF_NORMED)
-
-    _, _, _, max_loc = cv2.minMaxLoc(result)
-
-    top_left = max_loc
-    bottom_right = (top_left[0] + icon.shape[1], top_left[1] + icon.shape[0])
-
-    middle_lo = const.CoordData((top_left[0] + bottom_right[0])/2, (top_left[1] + bottom_right[1])/2)
-
-    return middle_lo
-
 def get_player_list():
     player_list = []
     image_data = adb_cls.get_text_image(OptionImage.CHAT)
@@ -151,15 +132,48 @@ def get_player_list():
 
             player_data = get_coord_info(image_data_left, image_data_top, image_data_text)
             if player_data.is_valid():
-                if player_list:
-                    if player_list[-1] != player_data:
-                        player_list.append(player_data)
+                # If valid do nothing 
+                pass
+            else:
+                print("User is not valid, Searching with shared coord")
+                search_with_shared_coord(player_data, 3)
+                error_flg, x_location, y_location = get_location_from_tab()
+                # Open chat box
+                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
+                if not error_flg:
+                    player_data.x_cord = x_location
+                    player_data.y_cord = y_location
                 else:
+                    print("Cannot get location of this user, Skip!")
+                    continue
+
+            # all player list
+            if player_list:
+                if player_list[-1] != player_data:
                     player_list.append(player_data)
             else:
-                print("User is not valid")
+                player_list.append(player_data)
 
     return player_list, image_data
+
+
+def get_location_from_tab():
+    x_location = 0
+    y_location = 0
+    error_flg = True
+    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
+    for _, data in enumerate(image_data["text"]):
+        if "X:" in data:
+            x_location = int(re.findall(r'\d+', data)[0])
+        elif "Y:" in data:
+            y_location = int(re.findall(r'\d+', data)[0])
+        else:
+            pass
+
+    if x_location and y_location:
+        error_flg = False
+
+    return error_flg, x_location, y_location
 
 
 def get_coord_info(data_left, data_top, data_text):
@@ -177,12 +191,11 @@ def get_coord_info(data_left, data_top, data_text):
 
                     for j in range(i+1, len(data_text)):
                         if "(#" in data_text[j]:
-                            str_num_kd = len(data_text[j])
-                            # Get Kingdom format (#2254
-                            if str_num_kd == 6:
-                                player_info.kingdom_cord = data_text[j][2:]
+                            # 0 is problem of ocr
+                            if "C" in data_text[j] or "0" in data_text[j]:
+                                player_info.kingdom_cord = const.KVK_NUMBER
                             else:
-                                player_info.kingdom_cord = data_text[j][3:]
+                                player_info.kingdom_cord = const.KINGDOM_NUMBER
 
                         # Error from orc
                         elif data_text[j][0] == "X" or data_text[j][0] == "x":
@@ -259,8 +272,8 @@ def search_with_magnifying(player_info):
     adb_cls.clickToTarget(const.COORD_SEARCH_SUBMIT_INPUT, sleep_time=5)
 
 
-def search_with_shared_coord(player_info):
-    adb_cls.clickToTarget(player_info.get_position_coord_pos(), sleep_time=5)
+def search_with_shared_coord(player_info, sleep_time=5):
+    adb_cls.clickToTarget(player_info.get_position_coord_pos(), sleep_time=sleep_time)
 
 
 def give_title(target_title, search_opt):
@@ -269,7 +282,7 @@ def give_title(target_title, search_opt):
     if search_opt == SearchOption.SHARED_COORD:
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
     else:
-        title_page = find_cv_title_icon()
+        title_page = adb_cls.find_cv_title_icon()
         adb_cls.clickToTarget(title_page)
         print(title_page.x, title_page.y)
     
