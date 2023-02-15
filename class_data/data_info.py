@@ -23,30 +23,6 @@ def get_data_image(img, config="", output_type=Output.STRING):
     return data
 
 
-class TitleInfo(Enum):
-    DUKE = const.COORD_DUKE
-    ARCH = 2
-    JUST = 3
-    SCI = 4
-    TRAI = 5
-    BEGG = 6
-    EXIL = 7
-    SLAV = 8
-    SLUG = 9 
-    FOLL = 10
-
-class OptionImage(Enum):
-    LOCATION = 1
-    CHAT = 2
-
-class BotLocation(Enum):
-    KINGDOM = 1
-    KVK = 2
-
-class SearchOption(Enum):
-    MAGNIFY = 1
-    SHARED_COORD = 2
-
 class PlayerData():
     def __init__(self):
         pass
@@ -178,17 +154,21 @@ class Adb():
 
         return image
 
-    def get_text_image(self, opt=OptionImage.CHAT):
-        image = self.take_screenshot()
+    def get_text_image(self, image=None, opt=const.OptionImage.CHAT):
+        if image is None:
+            image = self.take_screenshot()
 
         img = Image.open(io.BytesIO(image))
-        if opt == OptionImage.CHAT:
+        if opt == const.OptionImage.CHAT:
             tesseract_config = ""
             coord_crop = const.COORD_MESSAGE_LIST
-        elif opt == OptionImage.LOCATION:
+        elif opt == const.OptionImage.LOCATION:
             tesseract_config = r'--psm 13 tessedit_char_whitelist=C0123456789'
             coord_crop = const.COORD_LOCATION_LIST
         # Not support other flag
+        elif opt == const.OptionImage.PLAYSCREEN:
+            tesseract_config = ""
+            coord_crop = const.COORD_FULLSCREEN_LIST
         else:
             pass
 
@@ -200,20 +180,28 @@ class Adb():
 
     def find_cv_title_icon(self):
         image = self.take_screenshot()
-        nparr = np.frombuffer(image, np.uint8)
-        img = cv.imdecode(nparr, cv.IMREAD_COLOR)
-        icon = cv.imread(const.TITLE_ICON_PATH)
 
-        result = cv.matchTemplate(img, icon, cv.TM_CCOEFF_NORMED)
+        #Confirm user popup is showed
 
-        _, _, _, max_loc = cv.minMaxLoc(result)
+        image_data = self.get_text_image(image=image, opt=const.OptionImage.PLAYSCREEN)
+        if "Power" in image_data["text"] and "Kill" in image_data["text"] and "Points" in image_data["text"]:
+            nparr = np.frombuffer(image, np.uint8)
+            img = cv.imdecode(nparr, cv.IMREAD_COLOR)
+            icon = cv.imread(const.TITLE_ICON_PATH)
 
-        top_left = max_loc
-        bottom_right = (top_left[0] + icon.shape[1], top_left[1] + icon.shape[0])
+            result = cv.matchTemplate(img, icon, cv.TM_CCOEFF_NORMED)
 
-        middle_lo = const.CoordData((top_left[0] + bottom_right[0])/2, (top_left[1] + bottom_right[1])/2)
+            _, _, _, max_loc = cv.minMaxLoc(result)
 
-        return middle_lo
+            top_left = max_loc
+            bottom_right = (top_left[0] + icon.shape[1], top_left[1] + icon.shape[0])
+
+            middle_lo = const.CoordData((top_left[0] + bottom_right[0])/2, (top_left[1] + bottom_right[1])/2)
+
+            return middle_lo
+        else:
+            # Cannot find user popup
+            return None
 
     def game_chat(self, message):
         self.device.input_tap(const.COORD_CHAT_BAR.x, const.COORD_CHAT_BAR.y)

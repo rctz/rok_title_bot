@@ -1,9 +1,7 @@
 import threading
 import re
-import cv2
-from class_data.data_info import Adb, PlayerData, TitleInfo, OptionImage, BotLocation, SearchOption
+from class_data.data_info import Adb, PlayerData
 from time import sleep, time
-import numpy as np
 import schedule
 from queue import Queue
 from pytesseract import pytesseract
@@ -31,7 +29,7 @@ class TitleGiver():
 
         self.manage_queue_flg = True
         self.actual_player, image_data = get_player_list()
-        if self.actual_player == self.previous_player_list:
+        if self.actual_player == self.previous_player_list or not self.actual_player:
             pass
         else:
             self.count_empty_queue = 0
@@ -46,6 +44,7 @@ class TitleGiver():
 
         if self.title_queue.qsize() == 0:
             self.count_empty_queue += 1
+            print("Count emprt queue: ", self.count_empty_queue)
 
         if self.count_empty_queue >= 5:
             if is_connection_lost(image_data["text"]):
@@ -66,7 +65,7 @@ class TitleGiver():
 
             time_now = time()
             if time_now - self.title_time_counter >= self.title_period:
-                search_option = SearchOption.SHARED_COORD
+                search_option = const.SearchOption.SHARED_COORD
                 self.title_time_counter = time_now
                 self.action_title_flg = True
                 print("Title action process")
@@ -74,27 +73,27 @@ class TitleGiver():
                 # Get player from queue
                 player_info = self.title_queue.get()
 
-                print("Current process: ", player_info)
+                # Close chat box 
+                adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
     
                 # If player is in kingdom map, can use magnify dude no forge
                 if player_info.is_kingdom_map():
                     search_with_magnifying(player_info)
-                    search_option = SearchOption.MAGNIFY
+                    search_option = const.SearchOption.MAGNIFY
                 else:
-                    # Close chat box for search kingdom location
-                    adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
+                    bot_screen_location = current_bot_location()
 
-                    if current_bot_location() == BotLocation.KVK:
+                    if bot_screen_location == const.BotLocation.KVK:
                         search_with_magnifying(player_info)
-                        search_option = SearchOption.MAGNIFY
+                        search_option = const.SearchOption.MAGNIFY
                     else:
                         # Need to open chat to click location link
                         adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                         search_with_shared_coord(player_info)
-                        search_option = SearchOption.SHARED_COORD
+                        search_option = const.SearchOption.SHARED_COORD
 
                 sleep(2.5)
-                give_title(TitleInfo.DUKE, search_option)
+                give_title(const.TitleInfo.DUKE, search_option)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                 # Scoll down to lasted message in chat room
                 adb_cls.chat_scoll_down()
@@ -109,11 +108,11 @@ def is_connection_lost(image_data):
     for idx, data in enumerate(image_data):
         # Network unstable cas
         if data == "Network" :
-            if image_data[idx+1] == "unstable,":
+            if image_data[idx+1] == "unstable," or image_data[idx+1] == "unstable":
                 return True
         # Login fail case
         elif data == "Login":
-            if image_data[idx+1] == "failed,":
+            if image_data[idx+1] == "failed," or image_data[idx+1] == "failed":
                 return True
         else:
             pass
@@ -123,7 +122,7 @@ def is_connection_lost(image_data):
 
 def get_player_list():
     player_list = []
-    image_data = adb_cls.get_text_image(OptionImage.CHAT)
+    image_data = adb_cls.get_text_image(opt=const.OptionImage.CHAT)
     for idx, value in enumerate(image_data["text"]):
         if "Shared" in value:
             image_data_left = image_data["left"][idx:]
@@ -161,7 +160,7 @@ def get_location_from_tab():
     x_location = 0
     y_location = 0
     error_flg = True
-    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
+    image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
     for _, data in enumerate(image_data["text"]):
         if "X:" in data:
             x_location = int(re.findall(r'\d+', data)[0])
@@ -234,10 +233,6 @@ def get_coord_info(data_left, data_top, data_text):
 
 
 def search_with_magnifying(player_info):
-    # Close chat
-    adb_cls.clickToTarget(const.COORD_CLOSE_CHAT)
-    print("Closing chat")
-
     # Click mafi icon
     adb_cls.clickToTarget(const.COORD_SEARCH)
 
@@ -278,19 +273,22 @@ def search_with_shared_coord(player_info, sleep_time=5):
 
 def give_title(target_title, search_opt):
     # Click mid screen
-    adb_cls.clickToTarget(const.CORRD_MID_SCREEN, sleep_time=0.5)
-    if search_opt == SearchOption.SHARED_COORD:
+    adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=0.5)
+    if search_opt == const.SearchOption.SHARED_COORD:
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
     else:
-        title_page = adb_cls.find_cv_title_icon()
-        adb_cls.clickToTarget(title_page)
-        print(title_page.x, title_page.y)
-    
-    adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+        for click_coord in const.USER_POPUP_CLICK_LIST:
+            adb_cls.clickToTarget(click_coord, sleep_time=0.5)
+            title_page = adb_cls.find_cv_title_icon()
+            if title_page is not None:
+                print(title_page)
+                adb_cls.clickToTarget(title_page)
+                
+                adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
 
-    # Click confirm title
-    adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
-    
+                # Click confirm title
+                adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
+                break
 
 def find_first_dup(previous, actual):
     if previous:
@@ -327,13 +325,13 @@ def main():
 
 
 def current_bot_location():
-    bot_location = BotLocation.KINGDOM
-    image_data = adb_cls.get_text_image(OptionImage.LOCATION)
+    bot_location = const.BotLocation.KINGDOM
+    image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
     
     for _, value in enumerate(image_data["text"]):
         #TODO Check again maybe can remove #C
         if "#C" in value or "C" in value:
-            bot_location = BotLocation.KVK
+            bot_location = const.BotLocation.KVK
             break
     
     print("Bot screen location: ", bot_location)

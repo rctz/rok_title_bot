@@ -1,8 +1,14 @@
+from enum import Enum
+
 
 class CoordData():
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
+    def offset(self, x_offset, y_offset):
+        self.x += x_offset
+        self.y += y_offset
 
 TESSERACT_PATH = r"I:\ta\python\Rok-BotgiverTitle\tesseract-OCR\tesseract.exe"
 TITLE_ICON_PATH = "img/title_icon.jpg"
@@ -14,8 +20,9 @@ KVK_NUMBER = 11658
 
 COORD_MESSAGE_LIST = (415, 45, 800, 895)
 COORD_LOCATION_LIST = (332, 12, 550, 42)
+COORD_FULLSCREEN_LIST = (33, 121, 1443, 760)
 COORD_CROP_FIND_TITLE = (35, 135, 1476, 782)
-CORRD_MID_SCREEN = CoordData(790, 460)
+COORD_MID_SCREEN = CoordData(790, 460)
 COORD_TARGET_TITLE = CoordData(945, 240)
 COORD_TARGET_TITLE_DUKE = CoordData(650, 495)
 COORD_TARGET_TITLE_CONFIRM = CoordData(800, 800)
@@ -32,8 +39,36 @@ COORD_CHAT_SWIPE_BEGIN = CoordData(813, 650)
 COORD_CHAT_SWIPE_END = CoordData(842, 394)
 COORD_CONFIRM_NETWORK_LOST = CoordData(805, 598)
 
+# Mid -> Top right -> Top left, Bottom left, Bottom right
+USER_POPUP_CLICK_LIST = [COORD_MID_SCREEN, COORD_MID_SCREEN.offset(132, -95), \
+                         COORD_MID_SCREEN.offset(-132, -95), COORD_MID_SCREEN.offset(-132, 95), \
+                         COORD_MID_SCREEN.offset(132, 95)]
+
 # Title location
 COORD_DUKE = CoordData(650, 495)
 
+class TitleInfo(Enum):
+    DUKE = COORD_DUKE
+    ARCH = 2
+    JUST = 3
+    SCI = 4
+    TRAI = 5
+    BEGG = 6
+    EXIL = 7
+    SLAV = 8
+    SLUG = 9 
+    FOLL = 10
 
+class OptionImage(Enum):
+    LOCATION = 1
+    CHAT = 2
+    PLAYSCREEN = 3
+
+class BotLocation(Enum):
+    KINGDOM = 1
+    KVK = 2
+
+class SearchOption(Enum):
+    MAGNIFY = 1
+    SHARED_COORD = 2
 
