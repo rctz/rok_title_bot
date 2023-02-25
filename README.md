@@ -1,6 +1,9 @@
 # Rok_title_bot
 Automate title giver for rise of kingdom by detect shared location in chat room
 
+![Capture (1)](https://user-images.githubusercontent.com/46108793/221348786-a9fa15c5-4e7d-432a-a5df-57868ad748df.jpg)
+
+
 ### Feature
 * Automatic give title to player
   - [X] Duke
