@@ -15,7 +15,9 @@ Automate title giver for rise of kingdom by detect shared location in chat room
 * Python ver 3+
 * Adb
 * Tesseract-OCR
-* BlueStack version 5 (Resolution: 1600x900)
+* BlueStack version
+   - Turn on Android debug bridge (adb)
+   - Using resolution 1600x900
 
 ### Limitation (1.0)
 * Support only **duke** in chat room
