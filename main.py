@@ -6,6 +6,7 @@ import schedule
 from queue import Queue
 from pytesseract import pytesseract
 import const
+import subprocess
 
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
@@ -325,13 +326,6 @@ def run_thread_title():
     title_thread.join()
 
 
-def main():
-    while True:
-        run_thread_queue()
-        schedule.run_pending()
-        print("===============")
-
-
 def current_bot_location():
     bot_location = const.BotLocation.KINGDOM
     image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
@@ -346,7 +340,22 @@ def current_bot_location():
 
     return bot_location
 
+
+def run_adb_console():
+    adb_process = subprocess.Popen([const.ADB_PATH, "start-server"])
+    adb_process.wait()
+    print("Adb connected!")
+
+
+def main():
+    while True:
+        run_thread_queue()
+        schedule.run_pending()
+        print("===============")
+
+
 if __name__ == "__main__":
+    run_adb_console()
     schedule.every(3).seconds.do(run_thread_title)
     adb_cls = Adb()
     title_giver = TitleGiver()

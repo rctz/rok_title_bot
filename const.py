@@ -11,8 +11,8 @@ class CoordData():
         self.x += x_offset
         self.y += y_offset
 
-TESSERACT_PATH = os.path.abspath("tesseract-OCR/tesseract.exe")
-ADB_PATH = os.path.abspath("platform-tools_r33.0.3-windows/platform-tools/adb.exe")
+TESSERACT_PATH = os.path.abspath("Tesseract-OCR/tesseract.exe")
+ADB_PATH = os.path.abspath("platform-tools_r34.0.0-windows/platform-tools/adb.exe")
 TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
 
 ADB_HOST = "127.0.0.1"

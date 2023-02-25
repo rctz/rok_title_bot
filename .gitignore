@@ -1,11 +1,9 @@
-resources/
-tesseract-OCR/
-platform-tools_r33.0.3-windows/
 env/
 __pycache__/
 docs/
 adb.exe
 screen.png
-tesseract-ocr-w64-setup
+Tesseract-OCR
 aa.jpg
 README.md
+platform-tools_r34.0.0-windows
