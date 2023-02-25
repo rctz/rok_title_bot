@@ -11,7 +11,7 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 
 class TitleGiver():
-    def __init__(self, time_period=2.5):
+    def __init__(self, time_period=2.75):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
@@ -89,7 +89,7 @@ class TitleGiver():
                     else:
                         # Need to open chat to click location link
                         adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
-                        search_with_shared_coord(player_info)
+                        search_with_shared_coord(player_info, sleep_time=7)
                         search_option = const.SearchOption.SHARED_COORD
 
                 sleep(2.5)
@@ -272,16 +272,24 @@ def search_with_shared_coord(player_info, sleep_time=5):
 
 
 def give_title(target_title, search_opt):
-    # Click mid screen
-    adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=0.5)
     if search_opt == const.SearchOption.SHARED_COORD:
+        # Click mid screen
+        adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=0.5)
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
+        adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+
+        # Click confirm title
+        adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
+
     else:
+        print(const.USER_POPUP_CLICK_LIST)
         for click_coord in const.USER_POPUP_CLICK_LIST:
-            adb_cls.clickToTarget(click_coord, sleep_time=0.5)
+            print("Click cord:", click_coord)
+            adb_cls.clickToTarget(click_coord, sleep_time=2.5)
             title_page = adb_cls.find_cv_title_icon()
+            print("Title page: ", title_page)
             if title_page is not None:
-                print(title_page)
+                
                 adb_cls.clickToTarget(title_page)
                 
                 adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
