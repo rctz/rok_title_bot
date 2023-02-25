@@ -1,4 +1,5 @@
 from enum import Enum
+import os
 
 
 class CoordData():
@@ -10,8 +11,9 @@ class CoordData():
         self.x += x_offset
         self.y += y_offset
 
-TESSERACT_PATH = r"I:\ta\python\Rok-BotgiverTitle\tesseract-OCR\tesseract.exe"
-TITLE_ICON_PATH = "img/title_icon.jpg"
+TESSERACT_PATH = os.path.abspath("tesseract-OCR/tesseract.exe")
+ADB_PATH = os.path.abspath("platform-tools_r33.0.3-windows/platform-tools/adb.exe")
+TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
 
 ADB_HOST = "127.0.0.1"
 ADB_PORT = 5037
