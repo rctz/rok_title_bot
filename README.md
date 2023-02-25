@@ -1,7 +1,7 @@
 # Rok_title_bot
 Automate title giver for rise of kingdom by detect shared location in chat room
 
-![Capture (1)](https://user-images.githubusercontent.com/46108793/221348786-a9fa15c5-4e7d-432a-a5df-57868ad748df.jpg)
+![Capture](https://user-images.githubusercontent.com/46108793/221357768-639f6061-c1d5-4d71-9b61-f520d085911d.jpg)
 
 
 ### Feature
