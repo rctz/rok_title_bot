@@ -27,6 +27,9 @@ class PlayerData():
     def __init__(self):
         pass
 
+    def __repr__(self):
+        return "{}, X:{} Y:{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
+
     def __eq__(self, other):
         other_key = "{}{}{}".format(other.kingdom_cord, other.x_cord, other.y_cord)
         current_key = "{}{}{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
@@ -175,7 +178,6 @@ class Adb():
         crop_image = img.crop(coord_crop)
         image_cv = convert_image_cv(crop_image)
         image_data = get_data_image(image_cv, tesseract_config, Output.DICT)
-
         return image_data
 
     def find_cv_title_icon(self):
@@ -184,7 +186,8 @@ class Adb():
         #Confirm user popup is showed
 
         image_data = self.get_text_image(image=image, opt=const.OptionImage.PLAYSCREEN)
-        if "Power" in image_data["text"] and "Kill" in image_data["text"] and "Points" in image_data["text"]:
+        if ("Power" in image_data["text"] and "Kill" in image_data["text"] \
+            and "Points" in image_data["text"]) or len(image_data["text"]) > 45:
             nparr = np.frombuffer(image, np.uint8)
             img = cv.imdecode(nparr, cv.IMREAD_COLOR)
             icon = cv.imread(const.TITLE_ICON_PATH)
@@ -201,6 +204,7 @@ class Adb():
             return middle_lo
         else:
             # Cannot find user popup
+            print("Not found popup")
             return None
 
     def game_chat(self, message):

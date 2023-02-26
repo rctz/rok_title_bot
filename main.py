@@ -12,7 +12,7 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 
 class TitleGiver():
-    def __init__(self, time_period=2.75):
+    def __init__(self, time_period=0.75):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
@@ -136,13 +136,14 @@ def get_player_list():
                 pass
             else:
                 print("User is not valid, Searching with shared coord")
-                search_with_shared_coord(player_data, 3)
-                error_flg, x_location, y_location = get_location_from_tab()
+                search_with_shared_coord(player_data, 7)
+                error_flg, x_location, y_location, map_location = get_location_from_tab()
                 # Open chat box
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
                 if not error_flg:
                     player_data.x_cord = x_location
                     player_data.y_cord = y_location
+                    player_data.kingdom_cord = map_location
                 else:
                     print("Cannot get location of this user, Skip!")
                     continue
@@ -160,20 +161,26 @@ def get_player_list():
 def get_location_from_tab():
     x_location = 0
     y_location = 0
+    kingdom_location = const.KINGDOM_NUMBER
     error_flg = True
     image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
     for _, data in enumerate(image_data["text"]):
-        if "X:" in data:
+        if "X:" in data or "X" in data:
             x_location = int(re.findall(r'\d+', data)[0])
-        elif "Y:" in data:
+        elif "Y:" in data or "Y" in data:
             y_location = int(re.findall(r'\d+', data)[0])
+        elif "#" in data:
+            if "C" in data:
+                kingdom_location = const.KVK_NUMBER
+            else:
+                kingdom_location = const.KINGDOM_NUMBER
         else:
             pass
 
     if x_location and y_location:
         error_flg = False
 
-    return error_flg, x_location, y_location
+    return error_flg, x_location, y_location, kingdom_location
 
 
 def get_coord_info(data_left, data_top, data_text):
@@ -286,7 +293,7 @@ def give_title(target_title, search_opt):
         print(const.USER_POPUP_CLICK_LIST)
         for click_coord in const.USER_POPUP_CLICK_LIST:
             print("Click cord:", click_coord)
-            adb_cls.clickToTarget(click_coord, sleep_time=2.5)
+            adb_cls.clickToTarget(click_coord, sleep_time=3)
             title_page = adb_cls.find_cv_title_icon()
             print("Title page: ", title_page)
             if title_page is not None:
@@ -349,6 +356,7 @@ def run_adb_console():
 
 def main():
     while True:
+        #title_page = adb_cls.find_cv_title_icon()
         run_thread_queue()
         schedule.run_pending()
         print("===============")
