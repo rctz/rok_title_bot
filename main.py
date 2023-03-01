@@ -12,7 +12,8 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 
 class TitleGiver():
-    def __init__(self, time_period=0.75):
+    mode = const.Mode.ONLY_ONE_Q
+    def __init__(self, time_period=2.75):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.previous_player_list = []
@@ -28,10 +29,16 @@ class TitleGiver():
             print("Waiting action title")
             sleep(4)
 
+        if self.mode == const.Mode.ONLY_ONE_Q:
+            if self.title_queue.qsize() != 0:
+                return 
+
         self.manage_queue_flg = True
+
         self.actual_player, image_data = get_player_list()
         if self.actual_player == self.previous_player_list or not self.actual_player:
-            pass
+            if self.mode == const.Mode.ONLY_ONE_Q:
+                adb_cls.chat_scoll_down()
         else:
             self.count_empty_queue = 0
             dup_input = find_first_dup(self.previous_player_list, self.actual_player)
@@ -52,14 +59,16 @@ class TitleGiver():
                 adb_cls.clickToTarget(const.COORD_CONFIRM_NETWORK_LOST, sleep_time=5)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
-                adb_cls.chat_scoll_down()
                 self.count_empty_queue = 0
+                if self.mode == const.Mode.KEEP_ALL_Q:
+                    adb_cls.chat_scoll_down()
 
         self.manage_queue_flg = False
 
 
     def action_title(self):
         if not self.title_queue.empty():
+            print("Queue: ", title_giver.title_queue.queue)
             while self.manage_queue_flg:
                 print("Waiting manage queue")
                 sleep(2)
@@ -74,31 +83,39 @@ class TitleGiver():
                 # Get player from queue
                 player_info = self.title_queue.get()
 
-                # Close chat box 
-                adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
-    
-                # If player is in kingdom map, can use magnify dude no forge
-                if player_info.is_kingdom_map():
-                    search_with_magnifying(player_info)
-                    search_option = const.SearchOption.MAGNIFY
-                else:
-                    bot_screen_location = current_bot_location()
-
-                    if bot_screen_location == const.BotLocation.KVK:
+                if self.mode == const.Mode.KEEP_ALL_Q:
+                    # Close chat box 
+                    adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
+        
+                    # If player is in kingdom map, can use magnify dude no forge
+                    if player_info.is_kingdom_map():
                         search_with_magnifying(player_info)
                         search_option = const.SearchOption.MAGNIFY
                     else:
-                        # Need to open chat to click location link
-                        adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
-                        search_with_shared_coord(player_info, sleep_time=7)
-                        search_option = const.SearchOption.SHARED_COORD
+                        bot_screen_location = current_bot_location()
 
-                sleep(2.5)
-                give_title(const.TitleInfo.DUKE, search_option)
-                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
-                # Scoll down to lasted message in chat room
-                adb_cls.chat_scoll_down()
-                sleep(1)
+                        if bot_screen_location == const.BotLocation.KVK:
+                            search_with_magnifying(player_info)
+                            search_option = const.SearchOption.MAGNIFY
+                        else:
+                            # Need to open chat to click location link
+                            adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                            search_with_shared_coord(player_info, sleep_time=7)
+                            search_option = const.SearchOption.SHARED_COORD
+
+                    sleep(2.5)
+                    give_title(const.TitleInfo.DUKE, search_option)
+                    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                    # Scoll down to lasted message in chat room
+                    adb_cls.chat_scoll_down()
+                    sleep(1)
+                else:
+                    search_with_shared_coord(player_info, sleep_time=7)
+                    search_option = const.SearchOption.SHARED_COORD
+                    sleep(2.5)
+                    give_title(const.TitleInfo.DUKE, search_option)
+                    #if self.title_queue.qsize() == 0:
+                    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
 
                 self.action_title_flg = False
             else:
@@ -166,9 +183,20 @@ def get_location_from_tab():
     image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
     for _, data in enumerate(image_data["text"]):
         if "X:" in data or "X" in data:
-            x_location = int(re.findall(r'\d+', data)[0])
+            lo_x_list = re.findall(r'\d+', data)
+            if lo_x_list:
+                x_location = int(lo_x_list[0])
+            else:
+                error_flg = True
+                break
+            
         elif "Y:" in data or "Y" in data:
-            y_location = int(re.findall(r'\d+', data)[0])
+            lo_y_list = re.findall(r'\d+', data)
+            if lo_y_list:
+                y_location = int(lo_y_list[0])
+            else:
+                error_flg = True
+                break
         elif "#" in data:
             if "C" in data:
                 kingdom_location = const.KVK_NUMBER
@@ -284,10 +312,13 @@ def give_title(target_title, search_opt):
         # Click mid screen
         adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=0.5)
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
-        adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+        title_page = adb_cls.find_cv_title_icon()
+        print("Title page: ", title_page)
+        if title_page is not None:
+            adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
 
-        # Click confirm title
-        adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
+            # Click confirm title
+            adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
 
     else:
         print(const.USER_POPUP_CLICK_LIST)
@@ -324,7 +355,6 @@ def run_thread_queue():
     queue_thread = threading.Thread(target=title_giver.manage_queue(), daemon=True)
     queue_thread.start()
     queue_thread.join()
-    print("Queue: ", title_giver.title_queue.queue)
 
 
 def run_thread_title():
@@ -359,7 +389,6 @@ def main():
         #title_page = adb_cls.find_cv_title_icon()
         run_thread_queue()
         schedule.run_pending()
-        print("===============")
 
 
 if __name__ == "__main__":

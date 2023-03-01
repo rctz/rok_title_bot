@@ -186,8 +186,9 @@ class Adb():
         #Confirm user popup is showed
 
         image_data = self.get_text_image(image=image, opt=const.OptionImage.PLAYSCREEN)
-        if ("Power" in image_data["text"] and "Kill" in image_data["text"] \
-            and "Points" in image_data["text"]) or len(image_data["text"]) > 45:
+        if ("Power" in image_data["text"] or ("Kill" in image_data["text"] \
+            and "Points" in image_data["text"]) or "Alliance" in image_data["text"]) \
+            or len(image_data["text"]) > 45:
             nparr = np.frombuffer(image, np.uint8)
             img = cv.imdecode(nparr, cv.IMREAD_COLOR)
             icon = cv.imread(const.TITLE_ICON_PATH)
@@ -205,6 +206,8 @@ class Adb():
         else:
             # Cannot find user popup
             print("Not found popup")
+            print(image_data["text"])
+            print("===")
             return None
 
     def game_chat(self, message):

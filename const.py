@@ -78,3 +78,6 @@ class SearchOption(Enum):
     MAGNIFY = 1
     SHARED_COORD = 2
 
+class Mode(Enum):
+    KEEP_ALL_Q = 1
+    ONLY_ONE_Q = 2
