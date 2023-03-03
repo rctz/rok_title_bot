@@ -13,9 +13,10 @@ pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 class TitleGiver():
     mode = const.Mode.ONLY_ONE_Q
-    def __init__(self, time_period=2.75):
+    def __init__(self, time_period=1.75):
         self.manage_queue_flg = True
         self.action_title_flg = False
+        self.wait_finish_flg = False
         self.previous_player_list = []
         self.title_queue = Queue()
         # Convert min -> sec
@@ -30,8 +31,10 @@ class TitleGiver():
             sleep(4)
 
         if self.mode == const.Mode.ONLY_ONE_Q:
-            if self.title_queue.qsize() != 0:
+            if self.title_queue.qsize() != 0 or self.wait_finish_flg:
                 return 
+            else:
+                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
 
         self.manage_queue_flg = True
 
@@ -67,15 +70,18 @@ class TitleGiver():
 
 
     def action_title(self):
-        if not self.title_queue.empty():
-            print("Queue: ", title_giver.title_queue.queue)
-            while self.manage_queue_flg:
-                print("Waiting manage queue")
-                sleep(2)
+        print("Queue: ", title_giver.title_queue.queue)
+        while self.manage_queue_flg:
+            print("Waiting manage queue")
+            sleep(2)
 
-            time_now = time()
-            if time_now - self.title_time_counter >= self.title_period:
-                search_option = const.SearchOption.SHARED_COORD
+        time_now = time()
+        if time_now - self.title_time_counter >= self.title_period:
+            self.wait_finish_flg = False
+            search_option = const.SearchOption.SHARED_COORD
+            
+            # If have player
+            if not self.title_queue.empty():
                 self.title_time_counter = time_now
                 self.action_title_flg = True
                 print("Title action process")
@@ -110,16 +116,16 @@ class TitleGiver():
                     adb_cls.chat_scoll_down()
                     sleep(1)
                 else:
+                    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
                     search_with_shared_coord(player_info, sleep_time=7)
                     search_option = const.SearchOption.SHARED_COORD
                     sleep(2.5)
                     give_title(const.TitleInfo.DUKE, search_option)
-                    #if self.title_queue.qsize() == 0:
-                    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                    self.wait_finish_flg = True          
 
                 self.action_title_flg = False
-            else:
-                print("Wait duke finish")
+        else:
+            print("Wait duke finish")
 
 
 def is_connection_lost(image_data):
@@ -140,37 +146,44 @@ def is_connection_lost(image_data):
 
 def get_player_list():
     player_list = []
+    count_shared = 0
     image_data = adb_cls.get_text_image(opt=const.OptionImage.CHAT)
-    for idx, value in enumerate(image_data["text"]):
-        if "Shared" in value:
-            image_data_left = image_data["left"][idx:]
-            image_data_top = image_data["top"][idx:]
-            image_data_text = image_data["text"][idx:]
+    num_shared_player = image_data["text"].count("Shared")
+    if num_shared_player:
+        for idx, value in enumerate(image_data["text"]):
+            if "Shared" in value:
+                count_shared += 1
+                image_data_left = image_data["left"][idx:]
+                image_data_top = image_data["top"][idx:]
+                image_data_text = image_data["text"][idx:]
 
-            player_data = get_coord_info(image_data_left, image_data_top, image_data_text)
-            if player_data.is_valid():
-                # If valid do nothing 
-                pass
-            else:
-                print("User is not valid, Searching with shared coord")
-                search_with_shared_coord(player_data, 7)
-                error_flg, x_location, y_location, map_location = get_location_from_tab()
-                # Open chat box
-                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
-                if not error_flg:
-                    player_data.x_cord = x_location
-                    player_data.y_cord = y_location
-                    player_data.kingdom_cord = map_location
+                player_data = get_coord_info(image_data_left, image_data_top, image_data_text)
+                if player_data.is_valid():
+                    # If valid do nothing 
+                    pass
                 else:
-                    print("Cannot get location of this user, Skip!")
-                    continue
+                    print("User is not valid, Searching with shared coord")
+                    search_with_shared_coord(player_data, 7)
+                    error_flg, x_location, y_location, map_location = get_location_from_tab()
+                    
+                    # Open chat box to find another
+                    if count_shared != num_shared_player:
+                        adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
 
-            # all player list
-            if player_list:
-                if player_list[-1] != player_data:
+                    if not error_flg:
+                        player_data.x_cord = x_location
+                        player_data.y_cord = y_location
+                        player_data.kingdom_cord = map_location
+                    else:
+                        print("Cannot get location of this user, Skip!")
+                        continue
+
+                # all player list
+                if player_list:
+                    if player_list[-1] != player_data:
+                        player_list.append(player_data)
+                else:
                     player_list.append(player_data)
-            else:
-                player_list.append(player_data)
 
     return player_list, image_data
 
