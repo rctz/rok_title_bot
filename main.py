@@ -9,10 +9,9 @@ import const
 import subprocess
 
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
-
+MODE = const.Mode.ONLY_ONE_Q
 
 class TitleGiver():
-    mode = const.Mode.ONLY_ONE_Q
     def __init__(self, time_period=2.75):
         self.manage_queue_flg = True
         self.action_title_flg = False
@@ -30,7 +29,7 @@ class TitleGiver():
             print("Waiting action title")
             sleep(4)
 
-        if self.mode == const.Mode.ONLY_ONE_Q:
+        if MODE == const.Mode.ONLY_ONE_Q:
             if self.title_queue.qsize() != 0 or self.wait_finish_flg:
                 return 
             else:
@@ -40,7 +39,7 @@ class TitleGiver():
 
         self.actual_player, image_data = get_player_list()
         if self.actual_player == self.previous_player_list or not self.actual_player:
-            if self.mode == const.Mode.ONLY_ONE_Q:
+            if MODE == const.Mode.ONLY_ONE_Q:
                 adb_cls.chat_scoll_down()
         else:
             self.count_empty_queue = 0
@@ -63,7 +62,7 @@ class TitleGiver():
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
                 self.count_empty_queue = 0
-                if self.mode == const.Mode.KEEP_ALL_Q:
+                if MODE == const.Mode.KEEP_ALL_Q:
                     adb_cls.chat_scoll_down()
 
         self.manage_queue_flg = False
@@ -89,7 +88,7 @@ class TitleGiver():
                 # Get player from queue
                 player_info = self.title_queue.get()
 
-                if self.mode == const.Mode.KEEP_ALL_Q:
+                if MODE == const.Mode.KEEP_ALL_Q:
                     # Close chat box 
                     adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
         
@@ -162,21 +161,22 @@ def get_player_list():
                     # If valid do nothing 
                     pass
                 else:
-                    print("User is not valid, Searching with shared coord")
-                    search_with_shared_coord(player_data, 7)
-                    error_flg, x_location, y_location, map_location = get_location_from_tab()
-                    
-                    # Open chat box to find another
-                    if count_shared != num_shared_player:
-                        adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
+                    if MODE == const.Mode.KEEP_ALL_Q:
+                        print("User is not valid, Searching with shared coord")
+                        search_with_shared_coord(player_data, 7)
+                        error_flg, x_location, y_location, map_location = get_location_from_tab()
+                        
+                        # Open chat box to find another
+                        if count_shared != num_shared_player:
+                            adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1)
 
-                    if not error_flg:
-                        player_data.x_cord = x_location
-                        player_data.y_cord = y_location
-                        player_data.kingdom_cord = map_location
-                    else:
-                        print("Cannot get location of this user, Skip!")
-                        continue
+                        if not error_flg:
+                            player_data.x_cord = x_location
+                            player_data.y_cord = y_location
+                            player_data.kingdom_cord = map_location
+                        else:
+                            print("Cannot get location of this user, Skip!")
+                            continue
 
                 # all player list
                 if player_list:
@@ -322,21 +322,30 @@ def search_with_shared_coord(player_info, sleep_time=5):
 
 def give_title(target_title, search_opt):
     if search_opt == const.SearchOption.SHARED_COORD:
-        print(const.USER_POPUP_CLICK_LIST)
-        for click_coord in const.USER_POPUP_CLICK_LIST:
-            print("Click cord:", click_coord)
-            adb_cls.clickToTarget(click_coord, sleep_time=1.5)
-            title_page = adb_cls.find_cv_title_icon()
-            print("Title page: ", title_page)
-            if title_page is not None:
-                
-                adb_cls.clickToTarget(title_page)
-                
-                adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+        # Click mid screen
+        adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=1.5)
+        adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
 
-                # Click confirm title
-                adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
-                break
+        adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+
+        # Click confirm title
+        adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
+        # print(const.USER_POPUP_CLICK_LIST)
+        # for click_coord in const.USER_POPUP_CLICK_LIST:
+        #     print("Click cord:", click_coord)
+        #     adb_cls.clickToTarget(click_coord, sleep_time=1.5)
+        #     title_page = adb_cls.find_cv_title_icon()
+        #     adb_cls.clickToTarget(const.COORD_TARGET_TITLE, sleep_time=1.5)
+        #     print("Title page: ", title_page)
+        #     if title_page is not None:
+                
+        #         adb_cls.clickToTarget(title_page)
+                
+        #         adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+
+        #         # Click confirm title
+        #         adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
+        #         break
 
     else:
         print(const.USER_POPUP_CLICK_LIST)
