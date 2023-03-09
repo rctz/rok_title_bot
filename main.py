@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import threading
 import re
 from class_data.data_info import Adb, PlayerData
@@ -178,6 +180,9 @@ def get_player_list():
                             print("Cannot get location of this user, Skip!")
                             continue
 
+                    else:
+                        pass
+
                 # all player list
                 if player_list:
                     if player_list[-1] != player_data:
@@ -238,7 +243,11 @@ def get_coord_info(data_left, data_top, data_text):
                     player_info.pos_img = i
 
                     for j in range(i+1, len(data_text)):
-                        if "(#" in data_text[j]:
+                        #TODO Investigate why this case error
+                        if "xCHPA" in data_text[j]:
+                            pass
+
+                        elif "(#" in data_text[j]:
                             # 0 is problem of ocr
                             if "C" in data_text[j] or "0" in data_text[j]:
                                 player_info.kingdom_cord = const.KVK_NUMBER

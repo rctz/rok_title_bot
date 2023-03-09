@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from ppadb.client import Client
 from time import sleep
 import const
