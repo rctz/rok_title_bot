@@ -2,7 +2,7 @@
 
 import threading
 import re
-from class_data.data_info import Adb
+from class_data.data_info import Adb, PlayerData
 from time import sleep, time
 import schedule
 import utils
@@ -14,14 +14,14 @@ import subprocess
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
 
 class TitleGiver():
-    def __init__(self, time_period=const.TITLE_PERIOD):
+    def __init__(self):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.wait_finish_flg = False
         self.previous_player_list = []
         self.title_queue = Queue()
         # Convert min -> sec
-        self.title_period = time_period * 60
+        self.title_period = config_cls.title_period * 60
         self.title_time_counter = 0
         self.count_empty_queue = 0
 
@@ -31,7 +31,7 @@ class TitleGiver():
             print("Waiting action title")
             sleep(4)
 
-        if const.QUEUE_MODE == const.Mode.ONLY_ONE_Q:
+        if config_cls.q_mode == const.Mode.ONLY_ONE_Q:
             if self.title_queue.qsize() != 0 or self.wait_finish_flg:
                 return 
             else:
@@ -41,7 +41,7 @@ class TitleGiver():
 
         self.actual_player, image_data = get_player_list()
         if self.actual_player == self.previous_player_list or not self.actual_player:
-            if const.QUEUE_MODE == const.Mode.ONLY_ONE_Q:
+            if config_cls.q_mode == const.Mode.ONLY_ONE_Q:
                 adb_cls.chat_scoll_down()
         else:
             self.count_empty_queue = 0
@@ -64,7 +64,7 @@ class TitleGiver():
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
                 self.count_empty_queue = 0
-                if const.QUEUE_MODE == const.MODE.KEEP_ALL_Q:
+                if config_cls.q_mode == const.MODE.KEEP_ALL_Q:
                     adb_cls.chat_scoll_down()
 
         self.manage_queue_flg = False
@@ -90,7 +90,7 @@ class TitleGiver():
                 # Get player from queue
                 player_info = self.title_queue.get()
 
-                if const.QUEUE_MODE == const.Mode.KEEP_ALL_Q:
+                if config_cls.q_mode == const.Mode.KEEP_ALL_Q:
                     # Close chat box 
                     adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
         
@@ -129,6 +129,67 @@ class TitleGiver():
             print("Wait duke finish")
 
 
+def get_coord_info(data_left, data_top, data_text):
+    player_info = PlayerData()
+    try:
+        data_text = list(filter(lambda data: data!="", data_text))
+        for i in range(len(data_text)):
+            if data_text[i] == "Shared":
+                if data_text[i+1] == "a" or data_text[i+2] == "coordinate." or data_text[i+2] == "coordinate":
+                    found_x_flg = False
+                    found_y_flg = False
+                    player_info.left_image = data_left[i]
+                    player_info.top_image = data_top[i]
+                    player_info.pos_img = i
+
+                    for j in range(i+1, len(data_text)):
+                        #TODO Investigate why this case error
+                        if "xCHPA" in data_text[j]:
+                            pass
+
+                        elif "(#" in data_text[j]:
+                            # 0 is problem of ocr
+                            if "C" in data_text[j] or "0" in data_text[j]:
+                                player_info.kingdom_cord = const.KVK_NUMBER
+                            else:
+                                player_info.kingdom_cord = const.KINGDOM_NUMBER
+
+                        # Error from orc
+                        elif data_text[j][0] == "X" or data_text[j][0] == "x":
+                            x_cord_list = re.findall(r'\d+', data_text[j])
+                            if x_cord_list:
+                                player_info.x_cord = int(x_cord_list[0])
+                            else:
+                                x_cord_list = re.findall(r'\d+', data_text[j+1])
+                            player_info.x_cord = int(x_cord_list[0])
+                            found_x_flg = True
+
+                        # Error from orc
+                        elif data_text[j][0] == "Y" or data_text[j][0] == "y":
+                            y_cord = re.findall(r'\d+', data_text[j])
+                            if y_cord:
+                                y_cord = int(y_cord[0])
+                            else:
+                                y_cord = int(re.findall(r'\d+', data_text[j+1])[0])
+
+                            player_info.y_cord = y_cord
+                            found_y_flg = True
+                        
+                        else:
+                            pass
+
+                        if found_x_flg and found_y_flg is True:
+                            break
+                    break
+            else:
+                continue
+
+    except Exception as e:
+       print(str(e))
+
+    return player_info
+
+
 def get_player_list():
     player_list = []
     count_shared = 0
@@ -147,7 +208,7 @@ def get_player_list():
                     # If valid do nothing 
                     pass
                 else:
-                    if const.QUEUE_MODE == const.Mode.KEEP_ALL_Q:
+                    if config_cls.q_mode == const.Mode.KEEP_ALL_Q:
                         print("User is not valid, Searching with shared coord")
                         search_with_shared_coord(player_data, 7)
                         error_flg, x_location, y_location, map_location = get_location_from_tab()
@@ -180,7 +241,7 @@ def get_player_list():
 def get_location_from_tab():
     x_location = 0
     y_location = 0
-    kingdom_location = const.KINGDOM_NUMBER
+    kingdom_location = config_cls.kingdom_number
     error_flg = True
     image_data = adb_cls.get_text_image(opt=const.OptionImage.LOCATION)
     for _, data in enumerate(image_data["text"]):
@@ -201,9 +262,9 @@ def get_location_from_tab():
                 break
         elif "#" in data:
             if "C" in data:
-                kingdom_location = const.KVK_NUMBER
+                kingdom_location = config_cls.kvk_number
             else:
-                kingdom_location = const.KINGDOM_NUMBER
+                kingdom_location = config_cls.kingdom_number
         else:
             pass
 
@@ -258,26 +319,11 @@ def give_title(target_title, search_opt):
         adb_cls.clickToTarget(const.COORD_MID_SCREEN, sleep_time=1.5)
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE)
 
-        adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
+        adb_cls.clickToTarget(target_title.value, sleep_time=1.5)
 
         # Click confirm title
         adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
-        # print(const.USER_POPUP_CLICK_LIST)
-        # for click_coord in const.USER_POPUP_CLICK_LIST:
-        #     print("Click cord:", click_coord)
-        #     adb_cls.clickToTarget(click_coord, sleep_time=1.5)
-        #     title_page = adb_cls.find_cv_title_icon()
-        #     adb_cls.clickToTarget(const.COORD_TARGET_TITLE, sleep_time=1.5)
-        #     print("Title page: ", title_page)
-        #     if title_page is not None:
-                
-        #         adb_cls.clickToTarget(title_page)
-                
-        #         adb_cls.clickToTarget(target_title.value, sleep_time=0.5)
 
-        #         # Click confirm title
-        #         adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
-        #         break
 
     else:
         print(const.USER_POPUP_CLICK_LIST)
@@ -332,16 +378,17 @@ def run_adb_console():
 
 def main():
     while True:
-        #title_page = adb_cls.find_cv_title_icon()
         run_thread_queue()
         schedule.run_pending()
 
 
 if __name__ == "__main__":
     run_adb_console()
+    config_cls = utils.read_config_file()
     schedule.every(3).seconds.do(run_thread_title)
-    adb_cls = Adb()
+    adb_cls = Adb(config_cls)
     title_giver = TitleGiver()
+    
     if adb_cls.device_status:
         print("Starting...")
         main()

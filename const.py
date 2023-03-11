@@ -88,12 +88,15 @@ KINGDOM_NUMBER = 2254
 KVK_NUMBER = 11658
 
 # Notify information
-LINE_TOKEN = "5KWiLqILW0biCUFaQLHac2Ssn3neM9KGxvFLoKqe4Dh"
+LINE_TOKEN = ""
 LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"
 
 # Title config
 TITLE_PERIOD = 2.75
 QUEUE_MODE = Mode.ONLY_ONE_Q
+
+# Config file
+CONFIG_NAME = "config.ini"
 
 
 

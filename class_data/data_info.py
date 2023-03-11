@@ -122,9 +122,9 @@ class PlayerData():
             return False
 
 class Adb():
-    def __init__(self) -> None:
-        self.host = const.ADB_HOST
-        self.port = const.ADB_PORT
+    def __init__(self, config) -> None:
+        self.host = config.adb_host
+        self.port = config.adb_port
 
         #Todo need revised
         self.connect_device()

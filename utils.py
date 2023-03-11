@@ -1,9 +1,9 @@
 import const
-import re
-from class_data.data_info import PlayerData
+from class_data.config_info import Config
 from pytesseract import pytesseract, Output
 import numpy as np
 import cv2 as cv
+from configparser import ConfigParser
 
 def is_connection_lost(image_data):
     for idx, data in enumerate(image_data):
@@ -19,67 +19,6 @@ def is_connection_lost(image_data):
             pass
 
     return False
-
-
-def get_coord_info(data_left, data_top, data_text):
-    player_info = PlayerData()
-    try:
-        data_text = list(filter(lambda data: data!="", data_text))
-        for i in range(len(data_text)):
-            if data_text[i] == "Shared":
-                if data_text[i+1] == "a" or data_text[i+2] == "coordinate." or data_text[i+2] == "coordinate":
-                    found_x_flg = False
-                    found_y_flg = False
-                    player_info.left_image = data_left[i]
-                    player_info.top_image = data_top[i]
-                    player_info.pos_img = i
-
-                    for j in range(i+1, len(data_text)):
-                        #TODO Investigate why this case error
-                        if "xCHPA" in data_text[j]:
-                            pass
-
-                        elif "(#" in data_text[j]:
-                            # 0 is problem of ocr
-                            if "C" in data_text[j] or "0" in data_text[j]:
-                                player_info.kingdom_cord = const.KVK_NUMBER
-                            else:
-                                player_info.kingdom_cord = const.KINGDOM_NUMBER
-
-                        # Error from orc
-                        elif data_text[j][0] == "X" or data_text[j][0] == "x":
-                            x_cord_list = re.findall(r'\d+', data_text[j])
-                            if x_cord_list:
-                                player_info.x_cord = int(x_cord_list[0])
-                            else:
-                                x_cord_list = re.findall(r'\d+', data_text[j+1])
-                            player_info.x_cord = int(x_cord_list[0])
-                            found_x_flg = True
-
-                        # Error from orc
-                        elif data_text[j][0] == "Y" or data_text[j][0] == "y":
-                            y_cord = re.findall(r'\d+', data_text[j])
-                            if y_cord:
-                                y_cord = int(y_cord[0])
-                            else:
-                                y_cord = int(re.findall(r'\d+', data_text[j+1])[0])
-
-                            player_info.y_cord = y_cord
-                            found_y_flg = True
-                        
-                        else:
-                            pass
-
-                        if found_x_flg and found_y_flg is True:
-                            break
-                    break
-            else:
-                continue
-
-    except Exception as e:
-       print(str(e))
-
-    return player_info
 
 
 def find_first_dup(previous, actual):
@@ -107,3 +46,25 @@ def get_data_image(img, config="", output_type=Output.STRING):
     data = pytesseract.image_to_data(img, lang='eng', config=config, output_type=output_type)
     
     return data
+
+def read_config_file():
+    # instantiate
+    config_inst = ConfigParser()
+
+    # parse existing file
+    config_inst.read(const.CONFIG_NAME)
+    
+    Config_cls = Config()
+
+    # read values from a section
+    Config_cls.adb_host = config_inst.get('ADB config', 'ADB_HOST')
+    Config_cls.adb_port = config_inst.getint('ADB config', 'ADB_PORT')
+
+    Config_cls.title_period = config_inst.getfloat('Title config', 'TITLE_period')
+    q_mode_number = config_inst.getint('Title config', 'QUEUE_MODE')
+    Config_cls.q_mode = const.Mode(q_mode_number)
+
+    Config_cls.kingdom_number = config_inst.getint('Map config', 'KINGDOM_MAP')
+    Config_cls.kvk_number = config_inst.getint('Map config', 'KVK_MAP')
+
+    return Config_cls
