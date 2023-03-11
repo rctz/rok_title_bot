@@ -2,19 +2,19 @@
 
 import threading
 import re
-from class_data.data_info import Adb, PlayerData
+from class_data.data_info import Adb
 from time import sleep, time
 import schedule
+import utils
 from queue import Queue
 from pytesseract import pytesseract
 import const
 import subprocess
 
 pytesseract.tesseract_cmd = const.TESSERACT_PATH
-MODE = const.Mode.ONLY_ONE_Q
 
 class TitleGiver():
-    def __init__(self, time_period=2.75):
+    def __init__(self, time_period=const.TITLE_PERIOD):
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.wait_finish_flg = False
@@ -31,7 +31,7 @@ class TitleGiver():
             print("Waiting action title")
             sleep(4)
 
-        if MODE == const.Mode.ONLY_ONE_Q:
+        if const.QUEUE_MODE == const.Mode.ONLY_ONE_Q:
             if self.title_queue.qsize() != 0 or self.wait_finish_flg:
                 return 
             else:
@@ -41,11 +41,11 @@ class TitleGiver():
 
         self.actual_player, image_data = get_player_list()
         if self.actual_player == self.previous_player_list or not self.actual_player:
-            if MODE == const.Mode.ONLY_ONE_Q:
+            if const.QUEUE_MODE == const.Mode.ONLY_ONE_Q:
                 adb_cls.chat_scoll_down()
         else:
             self.count_empty_queue = 0
-            dup_input = find_first_dup(self.previous_player_list, self.actual_player)
+            dup_input = utils.find_first_dup(self.previous_player_list, self.actual_player)
             if dup_input:
                 for item in dup_input:
                     self.title_queue.put(item)
@@ -59,12 +59,12 @@ class TitleGiver():
             print("Count emprt queue: ", self.count_empty_queue)
 
         if self.count_empty_queue >= 5:
-            if is_connection_lost(image_data["text"]):
+            if utils.is_connection_lost(image_data["text"]):
                 adb_cls.clickToTarget(const.COORD_CONFIRM_NETWORK_LOST, sleep_time=5)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
                 self.count_empty_queue = 0
-                if MODE == const.Mode.KEEP_ALL_Q:
+                if const.QUEUE_MODE == const.MODE.KEEP_ALL_Q:
                     adb_cls.chat_scoll_down()
 
         self.manage_queue_flg = False
@@ -90,7 +90,7 @@ class TitleGiver():
                 # Get player from queue
                 player_info = self.title_queue.get()
 
-                if MODE == const.Mode.KEEP_ALL_Q:
+                if const.QUEUE_MODE == const.Mode.KEEP_ALL_Q:
                     # Close chat box 
                     adb_cls.clickToTarget(const.COORD_CLOSE_CHAT, sleep_time=1.5)
         
@@ -129,22 +129,6 @@ class TitleGiver():
             print("Wait duke finish")
 
 
-def is_connection_lost(image_data):
-    for idx, data in enumerate(image_data):
-        # Network unstable cas
-        if data == "Network" :
-            if image_data[idx+1] == "unstable," or image_data[idx+1] == "unstable":
-                return True
-        # Login fail case
-        elif data == "Login":
-            if image_data[idx+1] == "failed," or image_data[idx+1] == "failed":
-                return True
-        else:
-            pass
-
-    return False
-
-
 def get_player_list():
     player_list = []
     count_shared = 0
@@ -158,12 +142,12 @@ def get_player_list():
                 image_data_top = image_data["top"][idx:]
                 image_data_text = image_data["text"][idx:]
 
-                player_data = get_coord_info(image_data_left, image_data_top, image_data_text)
+                player_data = utils.get_coord_info(image_data_left, image_data_top, image_data_text)
                 if player_data.is_valid():
                     # If valid do nothing 
                     pass
                 else:
-                    if MODE == const.Mode.KEEP_ALL_Q:
+                    if const.QUEUE_MODE == const.Mode.KEEP_ALL_Q:
                         print("User is not valid, Searching with shared coord")
                         search_with_shared_coord(player_data, 7)
                         error_flg, x_location, y_location, map_location = get_location_from_tab()
@@ -227,67 +211,6 @@ def get_location_from_tab():
         error_flg = False
 
     return error_flg, x_location, y_location, kingdom_location
-
-
-def get_coord_info(data_left, data_top, data_text):
-    player_info = PlayerData()
-    try:
-        data_text = list(filter(lambda data: data!="", data_text))
-        for i in range(len(data_text)):
-            if data_text[i] == "Shared":
-                if data_text[i+1] == "a" or data_text[i+2] == "coordinate." or data_text[i+2] == "coordinate":
-                    found_x_flg = False
-                    found_y_flg = False
-                    player_info.left_image = data_left[i]
-                    player_info.top_image = data_top[i]
-                    player_info.pos_img = i
-
-                    for j in range(i+1, len(data_text)):
-                        #TODO Investigate why this case error
-                        if "xCHPA" in data_text[j]:
-                            pass
-
-                        elif "(#" in data_text[j]:
-                            # 0 is problem of ocr
-                            if "C" in data_text[j] or "0" in data_text[j]:
-                                player_info.kingdom_cord = const.KVK_NUMBER
-                            else:
-                                player_info.kingdom_cord = const.KINGDOM_NUMBER
-
-                        # Error from orc
-                        elif data_text[j][0] == "X" or data_text[j][0] == "x":
-                            x_cord_list = re.findall(r'\d+', data_text[j])
-                            if x_cord_list:
-                                player_info.x_cord = int(x_cord_list[0])
-                            else:
-                                x_cord_list = re.findall(r'\d+', data_text[j+1])
-                            player_info.x_cord = int(x_cord_list[0])
-                            found_x_flg = True
-
-                        # Error from orc
-                        elif data_text[j][0] == "Y" or data_text[j][0] == "y":
-                            y_cord = re.findall(r'\d+', data_text[j])
-                            if y_cord:
-                                y_cord = int(y_cord[0])
-                            else:
-                                y_cord = int(re.findall(r'\d+', data_text[j+1])[0])
-
-                            player_info.y_cord = y_cord
-                            found_y_flg = True
-                        
-                        else:
-                            pass
-
-                        if found_x_flg and found_y_flg is True:
-                            break
-                    break
-            else:
-                continue
-
-    except Exception as e:
-       print(str(e))
-
-    return player_info
 
 
 def search_with_magnifying(player_info):
@@ -372,19 +295,6 @@ def give_title(target_title, search_opt):
                 # Click confirm title
                 adb_cls.clickToTarget(const.COORD_TARGET_TITLE_CONFIRM)
                 break
-
-def find_first_dup(previous, actual):
-    if previous:
-        previous_last = previous[-1]
-        try:
-            last_idx = actual.index(previous_last)
-            
-            return actual[last_idx+1:]
-        except ValueError:
-            # not found index of previous last
-            return actual
-    else:
-        return actual
 
 
 def run_thread_queue():

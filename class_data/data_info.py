@@ -3,26 +3,12 @@
 from ppadb.client import Client
 from time import sleep
 import const
-from enum import Enum
 import io
-import re
 from PIL import Image
 import numpy as np
 import cv2 as cv
-from pytesseract import pytesseract, Output
-
-
-def convert_image_cv(image):
-    cv_image = np.array(image) 
-    cv_image = cv.cvtColor(cv_image, cv.COLOR_RGB2BGR)
-    
-    return cv_image
-
-
-def get_data_image(img, config="", output_type=Output.STRING):
-    data = pytesseract.image_to_data(img, lang='eng', config=config, output_type=output_type)
-    
-    return data
+from pytesseract import Output
+import utils
 
 
 class PlayerData():
@@ -178,8 +164,8 @@ class Adb():
             pass
 
         crop_image = img.crop(coord_crop)
-        image_cv = convert_image_cv(crop_image)
-        image_data = get_data_image(image_cv, tesseract_config, Output.DICT)
+        image_cv = utils.convert_image_cv(crop_image)
+        image_data = utils.get_data_image(image_cv, tesseract_config, Output.DICT)
         return image_data
 
     def find_cv_title_icon(self):
