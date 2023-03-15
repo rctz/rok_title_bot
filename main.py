@@ -64,7 +64,7 @@ class TitleGiver():
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
                 self.count_empty_queue = 0
-                if config_cls.q_mode == const.MODE.KEEP_ALL_Q:
+                if config_cls.q_mode == const.Mode.KEEP_ALL_Q:
                     adb_cls.chat_scoll_down()
 
         self.manage_queue_flg = False
@@ -203,7 +203,7 @@ def get_player_list():
                 image_data_top = image_data["top"][idx:]
                 image_data_text = image_data["text"][idx:]
 
-                player_data = utils.get_coord_info(image_data_left, image_data_top, image_data_text)
+                player_data = get_coord_info(image_data_left, image_data_top, image_data_text)
                 if player_data.is_valid():
                     # If valid do nothing 
                     pass
