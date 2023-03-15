@@ -20,7 +20,7 @@ Automate title giver for rise of kingdom by detect shared location in chat room
     https://developer.android.com/studio/releases/platform-tools
 * Tesseract-OCR 5.3.0
     https://github.com/UB-Mannheim/tesseract/wiki
-* BlueStack version
+* BlueStack version 5
    - Turn on Android debug bridge (adb)
    - Using resolution 1600x900
 
@@ -41,9 +41,10 @@ Automate title giver for rise of kingdom by detect shared location in chat room
     ```
 3) Install adb in **.\Rok-BotgiverTitle\platform-tools_r34.0.0-windows**
 4) Install Tesseract-OCR in **.\Rok-BotgiverTitle\Tesseract-OCR**
-5) Open rise of kingdom on bluestack and open chat room for give title
-6) Start the bot 
+5) Edit config.ini 
+6) Open rise of kingdom on bluestack and open chat room for giving the title
+7) Start the bot 
     ```python
     python3 main.py
     ```
-7) Enjoy!
+8) Enjoy!
