@@ -13,6 +13,7 @@ Automate title giver for rise of kingdom by detect shared location in chat room
 * Automatic search player location
 * Support kvk map that has fog
 * Auto detect network unstable
+* Auto chat scrolling down
 
 ### Requirement
 * Python 3.8+
