@@ -54,15 +54,14 @@ class TitleGiver():
         if self.actual_player:
             self.previous_player_list = self.actual_player
 
-        if self.title_queue.qsize() == 0:
-            self.count_empty_queue += 1
-            print("Count empty queue: ", self.count_empty_queue)
-
         if self.count_empty_queue >= 5:
+            print("Checking connection lost..")
             if utils.is_connection_lost(image_data["text"]):
+                print("Found connection lost popup!")
                 adb_cls.clickToTarget(const.COORD_CONFIRM_NETWORK_LOST, sleep_time=5)
                 adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
             else:
+                print("Connection is ok!")
                 self.count_empty_queue = 0
                 if config_cls.q_mode == const.Mode.KEEP_ALL_Q:
                     adb_cls.chat_scoll_down()
