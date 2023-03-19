@@ -56,7 +56,7 @@ class TitleGiver():
 
         if self.title_queue.qsize() == 0:
             self.count_empty_queue += 1
-            print("Count emprt queue: ", self.count_empty_queue)
+            print("Count empty queue: ", self.count_empty_queue)
 
         if self.count_empty_queue >= 5:
             if utils.is_connection_lost(image_data["text"]):
@@ -85,7 +85,7 @@ class TitleGiver():
             if not self.title_queue.empty():
                 self.title_time_counter = time_now
                 self.action_title_flg = True
-                print("Title action process")
+                print("Title giving process")
 
                 # Get player from queue
                 player_info = self.title_queue.get()
@@ -126,7 +126,7 @@ class TitleGiver():
 
                 self.action_title_flg = False
         else:
-            print("Wait duke finish")
+            print("Waiting queue finish")
 
 
 def get_coord_info(data_left, data_top, data_text):
