@@ -1,7 +1,6 @@
 from enum import Enum
 import os
 
-
 class CoordData():
     def __init__(self, x, y):
         self.x = x
@@ -11,14 +10,6 @@ class CoordData():
         self.x += x_offset
         self.y += y_offset
 
-TESSERACT_PATH = os.path.abspath("Tesseract-OCR/tesseract.exe")
-ADB_PATH = os.path.abspath("platform-tools_r34.0.0-windows/platform-tools/adb.exe")
-TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
-
-ADB_HOST = "127.0.0.1"
-ADB_PORT = 5037
-KINGDOM_NUMBER = 2254
-KVK_NUMBER = 11658
 
 COORD_MESSAGE_LIST = (415, 45, 800, 895)
 COORD_LOCATION_LIST = (332, 12, 550, 42)
@@ -77,4 +68,36 @@ class BotLocation(Enum):
 class SearchOption(Enum):
     MAGNIFY = 1
     SHARED_COORD = 2
+
+class Mode(Enum):
+    KEEP_ALL_Q = 1
+    ONLY_ONE_Q = 2
+
+
+# Path information
+TESSERACT_PATH = os.path.abspath("Tesseract-OCR/tesseract.exe")
+ADB_PATH = os.path.abspath("platform-tools_r34.0.0-windows/platform-tools/adb.exe")
+TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
+
+# Adb information
+ADB_HOST = "127.0.0.1"
+ADB_PORT = 5037
+
+# Kingdom information
+KINGDOM_NUMBER = 2254
+KVK_NUMBER = 11658
+
+# Notify information
+LINE_TOKEN = ""
+LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"
+
+# Title config
+TITLE_PERIOD = 2.75
+QUEUE_MODE = Mode.ONLY_ONE_Q
+
+# Config file
+CONFIG_NAME = "config.ini"
+
+
+
 
