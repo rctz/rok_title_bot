@@ -13,7 +13,9 @@ import utils
 
 class PlayerData():
     def __init__(self):
-        pass
+        self._kingdom_cord = 0
+        self._x_cord = 0
+        self._y_cord = 0
 
     def __repr__(self):
         return "{}, X:{} Y:{}".format(self.kingdom_cord, self.x_cord, self.y_cord)
