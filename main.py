@@ -54,6 +54,9 @@ class TitleGiver():
         if self.actual_player:
             self.previous_player_list = self.actual_player
 
+        if self.title_queue.qsize() == 0:
+            self.count_empty_queue += 1
+
         if self.count_empty_queue >= 5:
             print("Checking connection lost..")
             if utils.is_connection_lost(image_data["text"]):
