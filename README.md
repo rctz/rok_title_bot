@@ -13,6 +13,7 @@ Automate title giver for rise of kingdom by detect shared location in chat room
 * Automatic search player location
 * Support kvk map that has fog
 * Auto detect network unstable
+* Auto chat scrolling down
 
 ### Requirement
 * Python 3.8+
@@ -24,7 +25,7 @@ Automate title giver for rise of kingdom by detect shared location in chat room
    - Turn on Android debug bridge (adb)
    - Using resolution 1600x900
 
-### Limitation (1.0)
+### Limitation (1.0.0)
 * Support only **duke** in chat room
 * Cannot notify to user
 * Cannot detect **"Done"** keyword
