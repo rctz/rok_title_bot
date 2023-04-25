@@ -79,14 +79,6 @@ TESSERACT_PATH = os.path.abspath("Tesseract-OCR/tesseract.exe")
 ADB_PATH = os.path.abspath("platform-tools_r34.0.0-windows/platform-tools/adb.exe")
 TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
 
-# Adb information
-ADB_HOST = "127.0.0.1"
-ADB_PORT = 5037
-
-# Kingdom information
-KINGDOM_NUMBER = 2254
-KVK_NUMBER = 11658
-
 # Notify information
 LINE_TOKEN = ""
 LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"

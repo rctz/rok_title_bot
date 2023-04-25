@@ -6,12 +6,12 @@ class Config:
     q_mode = const.QUEUE_MODE
 
     ######## Kingdom config ########
-    kingdom_number = const.KINGDOM_NUMBER
-    kvk_number = const.KVK_NUMBER
+    kingdom_number = ""
+    kvk_number = ""
 
     ######## ADB config ########
-    adb_host = const.ADB_HOST
-    adb_port = const.ADB_PORT
+    adb_host = ""
+    adb_port = ""
 
     ######## PATH config ########
     tesseract_path = const.TESSERACT_PATH

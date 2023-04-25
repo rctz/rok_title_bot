@@ -18,6 +18,7 @@ class TitleGiver():
         self.manage_queue_flg = True
         self.action_title_flg = False
         self.wait_finish_flg = False
+        self.open_chat_flg = False
         self.previous_player_list = []
         self.title_queue = Queue()
         # Convert min -> sec
@@ -35,7 +36,9 @@ class TitleGiver():
             if self.title_queue.qsize() != 0 or self.wait_finish_flg:
                 return 
             else:
-                adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
+                if self.open_chat_flg:
+                    self.open_chat_flg = False
+                    adb_cls.clickToTarget(const.COORD_CHAT_MESSAGE_BOX, sleep_time=1.5)
 
         self.manage_queue_flg = True
 
@@ -124,7 +127,10 @@ class TitleGiver():
                     search_option = const.SearchOption.SHARED_COORD
                     sleep(2.5)
                     give_title(const.TitleInfo.DUKE, search_option)
-                    self.wait_finish_flg = True          
+                    self.wait_finish_flg = True         
+
+                    if self.title_queue.empty():
+                        self.open_chat_flg = True 
 
                 self.action_title_flg = False
         else:
@@ -152,9 +158,9 @@ def get_coord_info(data_left, data_top, data_text):
                         elif "(#" in data_text[j]:
                             # 0 is problem of ocr
                             if "C" in data_text[j] or "0" in data_text[j]:
-                                player_info.kingdom_cord = const.KVK_NUMBER
+                                player_info.kingdom_cord = config_cls.kvk_number
                             else:
-                                player_info.kingdom_cord = const.KINGDOM_NUMBER
+                                player_info.kingdom_cord = config_cls.kingdom_number
 
                         # Error from orc
                         elif data_text[j][0] == "X" or data_text[j][0] == "x":
@@ -390,7 +396,6 @@ if __name__ == "__main__":
     schedule.every(3).seconds.do(run_thread_title)
     adb_cls = Adb(config_cls)
     title_giver = TitleGiver()
-    
     if adb_cls.device_status:
         print("Starting...")
         main()

@@ -11,3 +11,4 @@ platform-tools_r34.0.0-windows
 build/
 dist/
 main.*
+release/
