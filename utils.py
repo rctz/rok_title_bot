@@ -2,8 +2,53 @@ import const
 from class_data.config_info import Config
 from pytesseract import pytesseract, Output
 import numpy as np
+import math
 import cv2 as cv
 from configparser import ConfigParser
+
+
+class ConfigValidator(ConfigParser):
+    def validateStr(self, option, value):
+        if isinstance(value, str) and value.strip() != "":
+            return True
+        else:
+            raise ValueError("{} require string format and cannot be empty!".format(option))
+
+    def validateInt(self, option, value):
+        if isinstance(value, int) and not math.isclose(value, 0):
+            return True
+        else:
+            raise ValueError("{} require integer format and cannot be 0!".format(option))
+        
+    def validateFloat(self, option, value):
+        if isinstance(value, float) and not math.isclose(value, 0):
+            return True
+        else:
+            raise ValueError("{} require float format and cannot be 0!".format(option))
+        
+    def validateConfigSection(self, config, section):
+        if not config.has_section(section):
+            raise Exception("{} require section [{}]".format(section))
+        
+    def getConfigOption(self, config, section, option, v):
+        if config.has_option(section, option):
+            if v is str:
+                value = config.get(section, option)
+                self.validateStr(option, value)
+            elif v is int:
+                value = config.getint(section, option)
+                self.validateInt(option, value)
+            elif v is float:
+                value = config.getfloat(section, option)
+                self.validateFloat(option, value)
+            else:
+                # not support other flag
+                value = ""
+
+            return value
+        else:
+            raise Exception("Require option {} in config file".format(option))
+
 
 def is_connection_lost(image_data):
     for idx, data in enumerate(image_data):
@@ -47,24 +92,28 @@ def get_data_image(img, config="", output_type=Output.STRING):
     
     return data
 
-def read_config_file():
-    # instantiate
-    config_inst = ConfigParser()
+def validate_config(config):
+    pass
 
-    # parse existing file
-    config_inst.read(const.CONFIG_NAME)
-    
+def read_config_file():
+    Config_ins = ConfigParser()
+    Config_ins.read(const.CONFIG_NAME)
+    Validator = ConfigValidator()
+
+    Validator.validateConfigSection(Config_ins, "ADB config")
+    Validator.validateConfigSection(Config_ins, "Title config")
+    Validator.validateConfigSection(Config_ins, "Map config")
     Config_cls = Config()
 
     # read values from a section
-    Config_cls.adb_host = config_inst.get('ADB config', 'ADB_HOST')
-    Config_cls.adb_port = config_inst.getint('ADB config', 'ADB_PORT')
+    Config_cls.adb_host = Validator.getConfigOption(Config_ins, 'ADB config', 'ADB_HOST', str)
+    Config_cls.adb_port = Validator.getConfigOption(Config_ins, 'ADB config', 'ADB_PORT', int)
 
-    Config_cls.title_period = config_inst.getfloat('Title config', 'TITLE_period')
-    q_mode_number = config_inst.getint('Title config', 'QUEUE_MODE')
+    Config_cls.title_period = Validator.getConfigOption(Config_ins, 'Title config', 'TITLE_PERIOD', float)
+    q_mode_number = Validator.getConfigOption(Config_ins, 'Title config', 'QUEUE_MODE', int)
     Config_cls.q_mode = const.Mode(q_mode_number)
 
-    Config_cls.kingdom_number = config_inst.getint('Map config', 'KINGDOM_MAP')
-    Config_cls.kvk_number = config_inst.getint('Map config', 'KVK_MAP')
+    Config_cls.kingdom_number = Validator.getConfigOption(Config_ins, 'Map config', 'KINGDOM_MAP', int)
+    Config_cls.kvk_number = Validator.getConfigOption(Config_ins, 'Map config', 'KVK_MAP', int)
 
     return Config_cls

@@ -78,6 +78,7 @@ class Mode(Enum):
 TESSERACT_PATH = os.path.abspath("Tesseract-OCR/tesseract.exe")
 ADB_PATH = os.path.abspath("platform-tools_r34.0.0-windows/platform-tools/adb.exe")
 TITLE_ICON_PATH = os.path.abspath("img/title_icon.jpg")
+CONFIG_NAME = os.path.abspath("config.ini")
 
 # Notify information
 LINE_TOKEN = ""
@@ -86,9 +87,6 @@ LINE_NOTIFY_API = "https://notify-api.line.me/api/notify"
 # Title config
 TITLE_PERIOD = 2.75
 QUEUE_MODE = Mode.ONLY_ONE_Q
-
-# Config file
-CONFIG_NAME = "config.ini"
 
 
 
